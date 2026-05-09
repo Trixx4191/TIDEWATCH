@@ -1,0 +1,26 @@
+{
+  "name": "tidewatch",
+  "version": "1.0.0",
+  "description": "Coastal Flood Vulnerability Atlas — NASA SRTM + MODIS + NOAA data fusion platform",
+  "main": "backend/server.js",
+  "scripts": {
+    "start": "node backend/server.js",
+    "dev": "nodemon backend/server.js",
+    "test": "node backend/tests/api.test.js"
+  },
+  "keywords": ["nasa", "flood", "coastal", "srtm", "noaa", "hurricane", "fema"],
+  "author": "TIDEWATCH Project",
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "morgan": "^1.10.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
