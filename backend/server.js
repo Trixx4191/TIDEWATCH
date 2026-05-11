@@ -81,15 +81,17 @@ app.use((err, req, res, next) => {
 });
 
 // ── START ─────────────────────────────────────────────────────────────────────
-app.listen(PORT, () => {
-  console.log("\n╔══════════════════════════════════════════╗");
-  console.log("║  🌊  TIDEWATCH API — ONLINE               ║");
-  console.log("╠══════════════════════════════════════════╣");
-  console.log(`║  Port:     ${PORT.toString().padEnd(31)}║`);
-  console.log(`║  Mode:     ${(process.env.NODE_ENV || "development").padEnd(31)}║`);
-  console.log(`║  Frontend: http://localhost:${PORT.toString().padEnd(15)}║`);
-  console.log(`║  Health:   http://localhost:${PORT}/api/health  ║`);
-  console.log("╚══════════════════════════════════════════╝\n");
-});
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log("\n╔══════════════════════════════════════════╗");
+    console.log("║  🌊  TIDEWATCH API — ONLINE               ║");
+    console.log("╠══════════════════════════════════════════╣");
+    console.log(`║  Port:     ${PORT.toString().padEnd(31)}║`);
+    console.log(`║  Mode:     ${(process.env.NODE_ENV || "development").padEnd(31)}║`);
+    console.log(`║  Frontend: http://localhost:${PORT.toString().padEnd(15)}║`);
+    console.log(`║  Health:   http://localhost:${PORT}/api/health  ║`);
+    console.log("╚══════════════════════════════════════════╝\n");
+  });
+}
 
 module.exports = app;

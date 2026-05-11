@@ -1,0 +1,349 @@
+{
+  "generated_at": "2026-05-11T05:41:55.544995Z",
+  "regions": {
+    "gulf_coast": {
+      "files": [
+        "data/processed/elevation_gulf_coast.json",
+        "data/processed/tides_gulf_coast.json",
+        "data/processed/tracks_gulf_coast.json",
+        "data/processed/surge_gulf_coast_cat1_2024.json",
+        "data/processed/surge_gulf_coast_cat2_2024.json",
+        "data/processed/surge_gulf_coast_cat3_2024.json",
+        "data/processed/surge_gulf_coast_cat4_2024.json",
+        "data/processed/surge_gulf_coast_cat5_2024.json"
+      ],
+      "errors": [],
+      "surge_scenarios": [
+        {
+          "category": 1,
+          "surge_ft": 4.0,
+          "area_km2": 180.3,
+          "population_exposed": 220628,
+          "hospitals_at_risk": 4,
+          "fei": 187
+        },
+        {
+          "category": 2,
+          "surge_ft": 8.0,
+          "area_km2": 1630.0,
+          "population_exposed": 582241,
+          "hospitals_at_risk": 11,
+          "fei": 187
+        },
+        {
+          "category": 3,
+          "surge_ft": 12.0,
+          "area_km2": 2696.0,
+          "population_exposed": 1027143,
+          "hospitals_at_risk": 18,
+          "fei": 187
+        },
+        {
+          "category": 4,
+          "surge_ft": 18.0,
+          "area_km2": 4279.8,
+          "population_exposed": 1536544,
+          "hospitals_at_risk": 26,
+          "fei": 187
+        },
+        {
+          "category": 5,
+          "surge_ft": 28.0,
+          "area_km2": 6729.6,
+          "population_exposed": 2100000,
+          "hospitals_at_risk": 34,
+          "fei": 187
+        }
+      ],
+      "elapsed_seconds": 174.7,
+      "status": "OK"
+    },
+    "atlantic": {
+      "files": [
+        "data/processed/elevation_atlantic.json",
+        "data/processed/tides_atlantic.json",
+        "data/processed/tracks_atlantic.json",
+        "data/processed/surge_atlantic_cat1_2024.json",
+        "data/processed/surge_atlantic_cat2_2024.json",
+        "data/processed/surge_atlantic_cat3_2024.json",
+        "data/processed/surge_atlantic_cat4_2024.json",
+        "data/processed/surge_atlantic_cat5_2024.json"
+      ],
+      "errors": [],
+      "surge_scenarios": [
+        {
+          "category": 1,
+          "surge_ft": 4.0,
+          "area_km2": 70.5,
+          "population_exposed": 93504,
+          "hospitals_at_risk": 4,
+          "fei": 142
+        },
+        {
+          "category": 2,
+          "surge_ft": 8.0,
+          "area_km2": 722.1,
+          "population_exposed": 246759,
+          "hospitals_at_risk": 9,
+          "fei": 142
+        },
+        {
+          "category": 3,
+          "surge_ft": 12.0,
+          "area_km2": 1193.8,
+          "population_exposed": 435313,
+          "hospitals_at_risk": 15,
+          "fei": 142
+        },
+        {
+          "category": 4,
+          "surge_ft": 18.0,
+          "area_km2": 1888.6,
+          "population_exposed": 651202,
+          "hospitals_at_risk": 21,
+          "fei": 142
+        },
+        {
+          "category": 5,
+          "surge_ft": 28.0,
+          "area_km2": 2973.2,
+          "population_exposed": 890000,
+          "hospitals_at_risk": 28,
+          "fei": 142
+        }
+      ],
+      "elapsed_seconds": 106.3,
+      "status": "OK"
+    },
+    "florida": {
+      "files": [
+        "data/processed/elevation_florida.json",
+        "data/processed/tides_florida.json",
+        "data/processed/tracks_florida.json",
+        "data/processed/surge_florida_cat1_2024.json",
+        "data/processed/surge_florida_cat2_2024.json",
+        "data/processed/surge_florida_cat3_2024.json",
+        "data/processed/surge_florida_cat4_2024.json",
+        "data/processed/surge_florida_cat5_2024.json"
+      ],
+      "errors": [],
+      "surge_scenarios": [
+        {
+          "category": 1,
+          "surge_ft": 4.0,
+          "area_km2": 131.1,
+          "population_exposed": 147085,
+          "hospitals_at_risk": 5,
+          "fei": 156
+        },
+        {
+          "category": 2,
+          "surge_ft": 8.0,
+          "area_km2": 1106.5,
+          "population_exposed": 388161,
+          "hospitals_at_risk": 13,
+          "fei": 156
+        },
+        {
+          "category": 3,
+          "surge_ft": 12.0,
+          "area_km2": 1812.9,
+          "population_exposed": 684762,
+          "hospitals_at_risk": 22,
+          "fei": 156
+        },
+        {
+          "category": 4,
+          "surge_ft": 18.0,
+          "area_km2": 2884.2,
+          "population_exposed": 1024363,
+          "hospitals_at_risk": 31,
+          "fei": 156
+        },
+        {
+          "category": 5,
+          "surge_ft": 28.0,
+          "area_km2": 4534.1,
+          "population_exposed": 1400000,
+          "hospitals_at_risk": 41,
+          "fei": 156
+        }
+      ],
+      "elapsed_seconds": 120.9,
+      "status": "OK"
+    },
+    "pacific": {
+      "files": [
+        "data/processed/tides_pacific.json",
+        "data/processed/tracks_pacific.json",
+        "data/processed/surge_pacific_cat1_2024.json",
+        "data/processed/surge_pacific_cat2_2024.json",
+        "data/processed/surge_pacific_cat3_2024.json",
+        "data/processed/surge_pacific_cat4_2024.json",
+        "data/processed/surge_pacific_cat5_2024.json"
+      ],
+      "errors": [
+        "SRTM fetch error: Failed to obtain any elevation data"
+      ],
+      "surge_scenarios": [
+        {
+          "category": 1,
+          "surge_ft": 4.0,
+          "area_km2": 277.7,
+          "population_exposed": 35720,
+          "hospitals_at_risk": 2,
+          "fei": 118
+        },
+        {
+          "category": 2,
+          "surge_ft": 8.0,
+          "area_km2": 629.8,
+          "population_exposed": 94267,
+          "hospitals_at_risk": 6,
+          "fei": 118
+        },
+        {
+          "category": 3,
+          "surge_ft": 12.0,
+          "area_km2": 986.3,
+          "population_exposed": 166299,
+          "hospitals_at_risk": 10,
+          "fei": 118
+        },
+        {
+          "category": 4,
+          "surge_ft": 18.0,
+          "area_km2": 1522.2,
+          "population_exposed": 248773,
+          "hospitals_at_risk": 14,
+          "fei": 118
+        },
+        {
+          "category": 5,
+          "surge_ft": 28.0,
+          "area_km2": 2410.4,
+          "population_exposed": 340000,
+          "hospitals_at_risk": 19,
+          "fei": 118
+        }
+      ],
+      "elapsed_seconds": 44.5,
+      "status": "PARTIAL"
+    },
+    "caribbean": {
+      "files": [
+        "data/processed/elevation_caribbean.json",
+        "data/processed/tides_caribbean.json",
+        "data/processed/tracks_caribbean.json",
+        "data/processed/surge_caribbean_cat1_2024.json",
+        "data/processed/surge_caribbean_cat2_2024.json",
+        "data/processed/surge_caribbean_cat3_2024.json",
+        "data/processed/surge_caribbean_cat4_2024.json",
+        "data/processed/surge_caribbean_cat5_2024.json"
+      ],
+      "errors": [],
+      "surge_scenarios": [
+        {
+          "category": 1,
+          "surge_ft": 4.0,
+          "area_km2": 34.1,
+          "population_exposed": 71441,
+          "hospitals_at_risk": 1,
+          "fei": 201
+        },
+        {
+          "category": 2,
+          "surge_ft": 8.0,
+          "area_km2": 425.4,
+          "population_exposed": 188535,
+          "hospitals_at_risk": 3,
+          "fei": 201
+        },
+        {
+          "category": 3,
+          "surge_ft": 12.0,
+          "area_km2": 708.1,
+          "population_exposed": 332598,
+          "hospitals_at_risk": 6,
+          "fei": 201
+        },
+        {
+          "category": 4,
+          "surge_ft": 18.0,
+          "area_km2": 1131.8,
+          "population_exposed": 497547,
+          "hospitals_at_risk": 9,
+          "fei": 201
+        },
+        {
+          "category": 5,
+          "surge_ft": 28.0,
+          "area_km2": 1769.3,
+          "population_exposed": 680000,
+          "hospitals_at_risk": 12,
+          "fei": 201
+        }
+      ],
+      "elapsed_seconds": 74.9,
+      "status": "OK"
+    },
+    "bay_of_bengal": {
+      "files": [
+        "data/processed/elevation_bay_of_bengal.json",
+        "data/processed/tides_bay_of_bengal.json",
+        "data/processed/tracks_bay_of_bengal.json",
+        "data/processed/surge_bay_of_bengal_cat1_2024.json",
+        "data/processed/surge_bay_of_bengal_cat2_2024.json",
+        "data/processed/surge_bay_of_bengal_cat3_2024.json",
+        "data/processed/surge_bay_of_bengal_cat4_2024.json",
+        "data/processed/surge_bay_of_bengal_cat5_2024.json"
+      ],
+      "errors": [],
+      "surge_scenarios": [
+        {
+          "category": 1,
+          "surge_ft": 4.0,
+          "area_km2": 264.1,
+          "population_exposed": 882513,
+          "hospitals_at_risk": 1,
+          "fei": 312
+        },
+        {
+          "category": 2,
+          "surge_ft": 8.0,
+          "area_km2": 2812.5,
+          "population_exposed": 2328966,
+          "hospitals_at_risk": 2,
+          "fei": 312
+        },
+        {
+          "category": 3,
+          "surge_ft": 12.0,
+          "area_km2": 4664.6,
+          "population_exposed": 4108573,
+          "hospitals_at_risk": 4,
+          "fei": 312
+        },
+        {
+          "category": 4,
+          "surge_ft": 18.0,
+          "area_km2": 7392.0,
+          "population_exposed": 6146179,
+          "hospitals_at_risk": 6,
+          "fei": 312
+        },
+        {
+          "category": 5,
+          "surge_ft": 28.0,
+          "area_km2": 11622.8,
+          "population_exposed": 8400000,
+          "hospitals_at_risk": 8,
+          "fei": 312
+        }
+      ],
+      "elapsed_seconds": 92.3,
+      "status": "OK"
+    }
+  },
+  "total_elapsed_seconds": 613.7
+}

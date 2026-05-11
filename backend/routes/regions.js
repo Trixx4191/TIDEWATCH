@@ -14,7 +14,7 @@
 
 const express = require("express");
 const router  = express.Router();
-const cache   = require("../utils/cache");
+const cache   = require("../../utils/cache");
 
 /** Complete regional metadata — authoritative source for the frontend */
 const REGIONS = {

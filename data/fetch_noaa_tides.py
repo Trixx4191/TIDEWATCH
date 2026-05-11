@@ -21,7 +21,7 @@ import time
 import argparse
 import requests
 import statistics
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -143,31 +143,16 @@ def fetch_station_data(station: dict, years: int = 5) -> dict:
     start_year = end_year - years
 
     for year in range(start_year, end_year):
-        params = {
-            "begin_date": f"{year}0101",
-            "end_date":   f"{year}1231",
-            "station":    station_id,
-            "product":    "daily_mean",
-            "datum":      "MHHW",
-            "units":      "english",
-            "time_zone":  "GMT",
-            "format":     "json",
-        }
-        if NOAA_API_KEY:
-            params["token"] = NOAA_API_KEY
-
         try:
-            resp = requests.get(NOAA_API_BASE, params=params, timeout=30)
-            data = resp.json()
-            if "data" in data:
-                values = [float(d["v"]) for d in data["data"] if d["v"] != ""]
-                if values:
-                    annual_maxima.append({
-                        "year": year,
-                        "max_ft": round(max(values), 2),
-                        "mean_ft": round(statistics.mean(values), 2),
-                    })
-            time.sleep(0.5)  # rate limit courtesy
+            values = _fetch_yearly_water_level(station_id, year)
+            if values:
+                annual_maxima.append({
+                    "year": year,
+                    "max_ft": round(max(values), 2),
+                    "mean_ft": round(statistics.mean(values), 2),
+                })
+            else:
+                print(f"    ⚠ No valid water level values for {year}")
         except Exception as e:
             print(f"    ⚠ {year} failed: {e}")
 
@@ -188,6 +173,45 @@ def fetch_station_data(station: dict, years: int = 5) -> dict:
         "annual_maxima": annual_maxima,
         "source":        "NOAA CO-OPS",
     }
+
+
+def _fetch_yearly_water_level(station_id: str, year: int) -> list[float]:
+    """
+    Retrieve hourly water level values for a station for one year.
+
+    The NOAA CO-OPS water level product is limited to 31-day requests, so
+    this function requests the year in rolling 31-day chunks.
+    """
+    values = []
+    window_start = date(year, 1, 1)
+    window_end = date(year, 12, 31)
+
+    while window_start <= window_end:
+        chunk_end = min(window_start + timedelta(days=30), window_end)
+        params = {
+            "begin_date": window_start.strftime("%Y%m%d"),
+            "end_date":   chunk_end.strftime("%Y%m%d"),
+            "station":    station_id,
+            "product":    "water_level",
+            "datum":      "MHHW",
+            "units":      "english",
+            "time_zone":  "GMT",
+            "format":     "json",
+        }
+        if NOAA_API_KEY:
+            params["token"] = NOAA_API_KEY
+
+        resp = requests.get(NOAA_API_BASE, params=params, timeout=30)
+        data = resp.json()
+        if "error" in data:
+            raise ValueError(data["error"]["message"])
+
+        chunk_values = [float(d["v"]) for d in data.get("data", []) if d.get("v") not in (None, "")]
+        values.extend(chunk_values)
+        time.sleep(0.25)
+        window_start = chunk_end + timedelta(days=1)
+
+    return values
 
 
 def _synthetic_station_data(station: dict) -> dict:

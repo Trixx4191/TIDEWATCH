@@ -14,9 +14,11 @@ Usage:
     python fetch_srtm.py --region atlantic --output data/processed/
 """
 
+import io
 import os
 import json
 import math
+import zipfile
 import argparse
 import requests
 import numpy as np
@@ -92,14 +94,14 @@ def download_tile(tile_name: str, session: requests.Session) -> np.ndarray | Non
         # Attempt real download with NASA Earthdata auth
         response = session.get(url, timeout=60, stream=True)
         if response.status_code == 200:
-            # In production: unzip and parse .hgt binary
-            # .hgt format: big-endian signed 16-bit integers, 3601×3601
             raw = response.content
-            elevation = np.frombuffer(raw, dtype=">i2").reshape(3601, 3601)
-            elevation = elevation.astype(np.float32)
-            elevation[elevation == -32768] = np.nan  # void fill
-            print(f"    ✓ Downloaded {tile_name} ({elevation.shape})")
-            return elevation
+            try:
+                elevation = _read_hgt_from_bytes(raw)
+                print(f"    ✓ Downloaded {tile_name} ({elevation.shape})")
+                return elevation
+            except Exception as exc:
+                print(f"    ⚠ Failed to parse {tile_name}: {exc}, using synthetic data")
+                return _synthetic_elevation(tile_name)
         else:
             print(f"    ⚠ HTTP {response.status_code} for {tile_name}, using synthetic data")
             return _synthetic_elevation(tile_name)
@@ -107,6 +109,31 @@ def download_tile(tile_name: str, session: requests.Session) -> np.ndarray | Non
     except Exception as e:
         print(f"    ⚠ Download failed ({e}), using synthetic data")
         return _synthetic_elevation(tile_name)
+
+
+def _read_hgt_from_bytes(raw: bytes) -> np.ndarray:
+    """
+    Read SRTM elevation data from raw bytes.
+
+    Supports either raw .hgt content or a .zip archive containing a single
+    .hgt file.
+    """
+    if raw[:2] == b'PK':
+        with zipfile.ZipFile(io.BytesIO(raw)) as zf:
+            hgt_files = [name for name in zf.namelist() if name.upper().endswith('.HGT')]
+            if not hgt_files:
+                raise ValueError("Zip archive did not contain any .hgt files")
+            with zf.open(hgt_files[0]) as hgt:
+                raw_hgt = hgt.read()
+    else:
+        raw_hgt = raw
+
+    elevation = np.frombuffer(raw_hgt, dtype=">i2")
+    if elevation.size != 3601 * 3601:
+        raise ValueError(f"Unexpected HGT size: {elevation.size} values")
+    elevation = elevation.reshape(3601, 3601).astype(np.float32)
+    elevation[elevation == -32768] = np.nan
+    return elevation
 
 
 def _synthetic_elevation(tile_name: str) -> np.ndarray:
@@ -162,8 +189,23 @@ def merge_tiles(tiles: list[np.ndarray], bbox: list) -> dict:
     if not tiles:
         raise ValueError("No tiles to merge")
 
-    # Stack tiles horizontally/vertically based on bbox span
-    merged = np.vstack(tiles) if len(tiles) > 1 else tiles[0]
+    min_lon, min_lat, max_lon, max_lat = bbox
+    cols = int(math.ceil(max_lon) - math.floor(min_lon))
+    rows = int(math.ceil(max_lat) - math.floor(min_lat))
+
+    if len(tiles) != rows * cols:
+        raise ValueError(
+            f"Tile count {len(tiles)} does not match expected grid {rows}x{cols}"
+        )
+
+    rows_of_tiles = []
+    for row in range(rows):
+        start = row * cols
+        row_tiles = tiles[start:start + cols]
+        rows_of_tiles.append(np.hstack(row_tiles))
+
+    # Input tiles are ordered from south to north; reverse to make row 0 northmost
+    merged = np.vstack(rows_of_tiles[::-1]) if len(rows_of_tiles) > 1 else rows_of_tiles[0]
 
     # Subsample to reduce JSON size (every 10th pixel → ~300m resolution)
     step = 10
