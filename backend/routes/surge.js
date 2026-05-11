@@ -21,8 +21,8 @@ const express = require("express");
 const fs      = require("fs");
 const path    = require("path");
 const router  = express.Router();
-const cache   = require("../utils/cache");
-const { interpolateSLR, cmToFeet } = require("../utils/geomath");
+const cache   = require("../../utils/cache");
+const { interpolateSLR, cmToFeet } = require("../../utils/geomath");
 const { REGIONS } = require("./regions");
 
 const PROCESSED_DIR = path.join(__dirname, "../../data/processed");

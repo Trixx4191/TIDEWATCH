@@ -5,108 +5,135 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TIDEWATCH — Coastal Flood Vulnerability Atlas</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&family=Syne:wght@400;600;700;800&family=Bebas+Neue&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;700&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/main.css">
 <link rel="stylesheet" href="css/components.css">
 </head>
 <body>
 
-<!-- SCANLINE OVERLAY -->
-<div class="scanlines" aria-hidden="true"></div>
-
-<!-- ══════════════════════════════════════════════════════════════
-     HEADER
-════════════════════════════════════════════════════════════════ -->
-<header class="header" id="header">
-  <div class="header-left">
-    <div class="logo">
-      <span class="logo-name">TIDEWATCH</span>
-      <span class="logo-divider">|</span>
-      <span class="logo-sub">Coastal Flood Vulnerability Atlas</span>
-    </div>
-    <div class="data-badges">
-      <span class="badge">NASA SRTM v3.0</span>
-      <span class="badge">MODIS SST</span>
-      <span class="badge">NOAA CO-OPS</span>
-      <span class="badge">HURDAT2</span>
-    </div>
-  </div>
-
-  <div class="header-center">
-    <span class="live-indicator">
-      <span class="live-dot" id="liveDot"></span>
-      <span class="live-label">LIVE FEED</span>
+<!-- CAT5 ALERT BANNER -->
+<div class="cat5-banner" id="cat5Banner" role="alert" aria-live="assertive">
+  <div class="cat5-banner-inner">
+    <span class="cat5-icon">⚠</span>
+    <span class="cat5-text">
+      CATASTROPHIC INUNDATION PROJECTED —
+      <span id="cat5Pop">0</span> LIVES AT RISK —
+      IMMEDIATE EVACUATION MODELING RECOMMENDED
     </span>
-    <div class="utc-clock" id="utcClock">UTC 00:00:00</div>
-    <div class="utc-date" id="utcDate">--</div>
+    <button class="cat5-dismiss" id="cat5Dismiss" aria-label="Dismiss">✕</button>
   </div>
+</div>
 
-  <div class="header-right">
-    <div class="storm-alert-badge" id="stormAlertBadge">
-      <span class="storm-alert-icon">⚡</span>
-      <span class="storm-alert-text" id="stormAlertText">NO ACTIVE STORM</span>
+<!-- EQUITY MODAL -->
+<div class="modal-overlay" id="equityModal" role="dialog" aria-modal="true">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span class="modal-icon">⚠</span>
+      <span class="modal-title">EQUITY ALERT</span>
+      <button class="modal-close" id="modalClose" aria-label="Close">✕</button>
     </div>
-    <div class="header-meta">
-      <span>FEMA REGION SUPPORT TOOL</span>
-      <span>v1.0.0 · MIT LICENSE</span>
+    <div class="modal-body">
+      <div class="modal-fei" id="modalFei">FEI SCORE 312</div>
+      <div class="modal-desc" id="modalDesc">
+        Low-income communities face <strong>3.1× disproportionate flood exposure</strong>.
+        Highest environmental injustice index in the TIDEWATCH dataset.
+      </div>
+      <div class="modal-stat-row">
+        <div class="modal-stat">
+          <div class="modal-stat-val" id="modalPop">8,400,000</div>
+          <div class="modal-stat-label">People at CAT5 risk</div>
+        </div>
+        <div class="modal-stat">
+          <div class="modal-stat-val" id="modalLowIncome">81.2%</div>
+          <div class="modal-stat-label">Flood zone in low-income tracts</div>
+        </div>
+        <div class="modal-stat">
+          <div class="modal-stat-val" id="modalHospitals">8</div>
+          <div class="modal-stat-label">Hospitals at risk</div>
+        </div>
+      </div>
+      <div class="modal-source">Source: US Census ACS B19013 · TIDEWATCH FEI methodology</div>
+    </div>
+  </div>
+</div>
+
+<!-- METHODOLOGY MODAL -->
+<div class="modal-overlay" id="methodModal" role="dialog" aria-modal="true" aria-hidden="true">
+  <div class="modal-box modal-box--wide">
+    <div class="modal-header">
+      <span class="modal-title">SCIENTIFIC METHODOLOGY</span>
+      <button class="modal-close" id="methodClose" aria-label="Close">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="method-grid">
+        <div class="method-item">
+          <div class="method-title">Elevation Model</div>
+          <div class="method-text">NASA SRTM v3.0 — 30m DEM from Space Shuttle radar (2000). Void-filled, reprojected to WGS84.</div>
+        </div>
+        <div class="method-item">
+          <div class="method-title">Inundation Model</div>
+          <div class="method-text">Flood-fill bathtub: pixel inundated if elevation ≤ surge + SLR AND hydrologically connected to ocean via BFS from coastline.</div>
+        </div>
+        <div class="method-item">
+          <div class="method-title">Sea Level Rise</div>
+          <div class="method-text">IPCC AR6 Table 9.9 intermediate (SSP2-4.5): +0.30m by 2050, +0.56m by 2075, +1.01m by 2100.</div>
+        </div>
+        <div class="method-item">
+          <div class="method-title">Flood Equity Index</div>
+          <div class="method-text">FEI = (% inundated low-income land) ÷ (% low-income tracts) × 100. Source: ACS B19013, HUD 80% AMI definition.</div>
+        </div>
+        <div class="method-item">
+          <div class="method-title">SST Anomaly</div>
+          <div class="method-text">MODIS Level-3 deviation from 1985–2012 baseline. Anomaly >+0.5°C correlates with intensification (Emanuel 1987).</div>
+        </div>
+        <div class="method-item">
+          <div class="method-title">Limitation</div>
+          <div class="method-text">Bathtub model omits wave dynamics and time-dependent surge. For evacuation planning, use NOAA SLOSH or ADCIRC.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="header-left">
+    <div class="logo-name">TIDEWATCH</div>
+    <div class="logo-meta">
+      <div class="logo-sub">Coastal Flood Vulnerability Atlas</div>
+      <div class="logo-sources">NASA SRTM · MODIS SST · NOAA CO-OPS · HURDAT2</div>
+    </div>
+  </div>
+  <div class="header-center">
+    <div class="live-status">
+      <span class="live-dot"></span>
+      <span class="live-label">LIVE DATA FEED</span>
+    </div>
+    <div class="utc-clock" id="utcClock">UTC 00:00:00</div>
+    <div class="mission-date" id="missionDate">—</div>
+  </div>
+  <div class="header-right">
+    <div class="storm-badge" id="stormBadge">
+      <span class="storm-badge-icon">🌀</span>
+      <div class="storm-badge-info">
+        <span class="storm-badge-name" id="stormBadgeName">NO ACTIVE STORM</span>
+        <span class="storm-badge-status">MONITORING</span>
+      </div>
+    </div>
+    <div class="agency-tags">
+      <span class="agency-tag">NASA</span>
+      <span class="agency-tag">NOAA</span>
+      <span class="agency-tag">FEMA</span>
     </div>
   </div>
 </header>
 
-<!-- ══════════════════════════════════════════════════════════════
-     CAT 5 CATASTROPHIC BANNER (hidden by default)
-════════════════════════════════════════════════════════════════ -->
-<div class="cat5-banner" id="cat5Banner" style="display:none;">
-  <div class="cat5-banner-inner">
-    <span class="cat5-icon">⚠</span>
-    <span class="cat5-text" id="cat5BannerText">
-      CATASTROPHIC INUNDATION PROJECTED — 0 LIVES AT RISK — IMMEDIATE EVACUATION MODELING RECOMMENDED
-    </span>
-    <button class="cat5-dismiss" id="cat5Dismiss" onclick="dismissCat5Banner()">✕</button>
-  </div>
-</div>
+<!-- LAYOUT -->
+<div class="layout">
 
-<!-- ══════════════════════════════════════════════════════════════
-     EQUITY MODAL (auto-triggers for Bay of Bengal)
-════════════════════════════════════════════════════════════════ -->
-<div class="modal-overlay" id="equityModal" style="display:none;">
-  <div class="modal">
-    <div class="modal-header">
-      <span class="modal-icon">⚠</span>
-      <span class="modal-title">EQUITY ALERT — CRITICAL FEI SCORE</span>
-      <button class="modal-close" onclick="closeEquityModal()">✕</button>
-    </div>
-    <div class="modal-body" id="equityModalBody">
-      <div class="modal-fei" id="modalFeiScore">FEI 312</div>
-      <div class="modal-description" id="modalFeiDesc">
-        Low-income communities in this region face 3.1× disproportionate
-        flood exposure — the highest environmental injustice index in the
-        TIDEWATCH dataset.
-      </div>
-      <div class="modal-stats" id="modalStats"></div>
-      <div class="modal-citation">
-        Flood Equity Index = (% inundated land in low-income tracts) ÷
-        (% low-income tracts in region) × 100
-        <br>
-        Source: US Census ACS B19013 · TIDEWATCH FEI Methodology
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn-primary" onclick="closeEquityModal()">ACKNOWLEDGE</button>
-      <a class="btn-secondary" href="docs/Equity_Analysis.md" target="_blank">READ METHODOLOGY</a>
-    </div>
-  </div>
-</div>
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
 
-<!-- ══════════════════════════════════════════════════════════════
-     MAIN LAYOUT
-════════════════════════════════════════════════════════════════ -->
-<div class="layout" id="layout">
-
-  <!-- ── SIDEBAR ────────────────────────────────────────────────── -->
-  <aside class="sidebar" id="sidebar">
-
-    <!-- Region Selector -->
     <div class="sidebar-section">
       <div class="section-label">COASTAL REGION</div>
       <div class="region-chips" id="regionChips">
@@ -119,296 +146,240 @@
       </div>
     </div>
 
-    <!-- Storm Scenario Engine -->
     <div class="sidebar-section">
       <div class="section-label">INUNDATION SCENARIO</div>
-      <div class="scenario-grid" id="scenarioGrid">
-        <button class="scenario-btn" data-cat="1">
+      <div class="scenario-btns" id="scenarioBtns">
+        <button class="scenario-btn cat1 active" data-cat="1">
           <span class="scenario-cat">CAT 1</span>
           <span class="scenario-surge">+4 ft surge</span>
         </button>
-        <button class="scenario-btn" data-cat="2">
+        <button class="scenario-btn cat2" data-cat="2">
           <span class="scenario-cat">CAT 2</span>
           <span class="scenario-surge">+8 ft surge</span>
         </button>
-        <button class="scenario-btn active" data-cat="3">
+        <button class="scenario-btn cat3" data-cat="3">
           <span class="scenario-cat">CAT 3</span>
           <span class="scenario-surge">+12 ft surge</span>
         </button>
-        <button class="scenario-btn" data-cat="4">
+        <button class="scenario-btn cat4" data-cat="4">
           <span class="scenario-cat">CAT 4</span>
           <span class="scenario-surge">+18 ft surge</span>
         </button>
-        <button class="scenario-btn cat5-btn" data-cat="5">
+        <button class="scenario-btn cat5" data-cat="5">
           <span class="scenario-cat">CAT 5</span>
           <span class="scenario-surge">+28 ft surge</span>
         </button>
       </div>
-      <div class="surge-override">
+      <div class="slider-group">
         <div class="slider-label">
           <span>SURGE OVERRIDE</span>
-          <span id="surgeOverrideVal">12.0 ft</span>
+          <span class="slider-val" id="surgeOverrideVal">4.0 ft</span>
         </div>
-        <input type="range" class="tw-slider" id="surgeOverride"
-               min="0" max="35" step="0.5" value="12">
+        <input class="tw-slider" type="range" id="surgeOverride" min="0" max="35" step="0.5" value="4">
+        <div class="slider-bounds"><span>0 ft</span><span>35 ft</span></div>
       </div>
     </div>
 
-    <!-- SLR Projector -->
     <div class="sidebar-section">
-      <div class="section-label">SEA LEVEL RISE — IPCC AR6</div>
-      <input type="range" class="tw-slider" id="slrSlider"
-             min="2024" max="2100" step="1" value="2024">
-      <div class="slr-display">
+      <div class="section-label">SEA LEVEL RISE — IPCC AR6 SSP2-4.5</div>
+      <input class="tw-slider" type="range" id="slrSlider" min="2024" max="2100" step="1" value="2024">
+      <div class="slider-bounds"><span>2024</span><span>2100</span></div>
+      <div class="slr-readout">
         <div class="slr-year" id="slrYear">2024</div>
         <div class="slr-values">
-          <span id="slrCm">+0 cm</span>
-          <span class="slr-sep">/</span>
-          <span id="slrFt">+0.0 ft</span>
-          <span class="slr-scenario">SSP2-4.5</span>
+          <div class="slr-val-item">
+            <span class="slr-val-num" id="slrCm">+6 cm</span>
+            <span class="slr-val-label">above 2000</span>
+          </div>
+          <div class="slr-val-item">
+            <span class="slr-val-num" id="slrFt">+0.2 ft</span>
+            <span class="slr-val-label">added surge</span>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- Metric Cards -->
     <div class="sidebar-section">
-      <div class="section-label">EXPOSURE METRICS</div>
+      <div class="section-label">DATA LAYERS</div>
+      <div class="layer-list">
+        <div class="layer-row" data-layer="elevation">
+          <div class="layer-info"><span class="layer-dot" style="background:#ff6d00"></span><span class="layer-name">SRTM Elevation (DEM)</span></div>
+          <button class="toggle on" id="toggle-elevation" aria-pressed="true"></button>
+        </div>
+        <div class="layer-row" data-layer="sst">
+          <div class="layer-info"><span class="layer-dot" style="background:#ff1744"></span><span class="layer-name">MODIS SST Anomaly</span></div>
+          <button class="toggle" id="toggle-sst" aria-pressed="false"></button>
+        </div>
+        <div class="layer-row" data-layer="gauges">
+          <div class="layer-info"><span class="layer-dot" style="background:#00e5ff"></span><span class="layer-name">NOAA Tidal Gauges</span></div>
+          <button class="toggle on" id="toggle-gauges" aria-pressed="true"></button>
+        </div>
+        <div class="layer-row" data-layer="population">
+          <div class="layer-info"><span class="layer-dot" style="background:#ffd600"></span><span class="layer-name">Population Density</span></div>
+          <button class="toggle" id="toggle-population" aria-pressed="false"></button>
+        </div>
+        <div class="layer-row" data-layer="infrastructure">
+          <div class="layer-info"><span class="layer-dot" style="background:#e040fb"></span><span class="layer-name">Critical Infrastructure</span></div>
+          <button class="toggle" id="toggle-infrastructure" aria-pressed="false"></button>
+        </div>
+        <div class="layer-row" data-layer="fema">
+          <div class="layer-info"><span class="layer-dot" style="background:#69f0ae"></span><span class="layer-name">FEMA Flood Zones</span></div>
+          <button class="toggle" id="toggle-fema" aria-pressed="false"></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="section-label">SCENARIO METRICS</div>
       <div class="metric-grid">
         <div class="metric-card danger">
-          <div class="metric-label">ZONE AT RISK</div>
-          <div class="metric-value" id="m-area">--</div>
+          <div class="metric-label">AREA AT RISK</div>
+          <div class="metric-val" id="m-area">—</div>
           <div class="metric-unit">km²</div>
         </div>
         <div class="metric-card catastrophic">
           <div class="metric-label">POP. EXPOSED</div>
-          <div class="metric-value" id="m-pop">--</div>
+          <div class="metric-val" id="m-pop">—</div>
           <div class="metric-unit">people</div>
         </div>
         <div class="metric-card caution">
-          <div class="metric-label">HOSPITALS</div>
-          <div class="metric-value" id="m-hosp">--</div>
-          <div class="metric-unit">at risk</div>
+          <div class="metric-label">ASSETS AT RISK</div>
+          <div class="metric-val" id="m-assets">—</div>
+          <div class="metric-unit">facilities</div>
         </div>
         <div class="metric-card safe">
-          <div class="metric-label">TOTAL SURGE</div>
-          <div class="metric-value" id="m-surge">--</div>
-          <div class="metric-unit">feet</div>
+          <div class="metric-label">TIDAL ANOMALY</div>
+          <div class="metric-val" id="m-tidal">—</div>
+          <div class="metric-unit">ft above MHHW</div>
         </div>
       </div>
     </div>
 
-    <!-- Equity Alert -->
     <div class="sidebar-section">
       <div class="section-label">ENVIRONMENTAL JUSTICE</div>
-      <div class="equity-panel" id="equityPanel">
-        <div class="equity-flag" id="equityFlag">--</div>
-        <div class="equity-fei-wrap">
-          <span class="equity-fei-label">FLOOD EQUITY INDEX</span>
-          <span class="equity-fei-value" id="equityFei">--</span>
+      <div class="equity-box" id="equityBox">
+        <div class="equity-header">
+          <span class="equity-flag" id="equityFlag">HIGH</span>
+          <span class="equity-title">FLOOD EQUITY INDEX</span>
         </div>
-        <div class="equity-desc" id="equityDesc">--</div>
-        <div class="equity-bar-wrap">
-          <div class="equity-bar-track">
-            <div class="equity-bar-fill" id="equityBarFill"></div>
-          </div>
-          <div class="equity-bar-labels">
-            <span>100</span><span>200</span><span>300+</span>
-          </div>
-        </div>
+        <div class="equity-score" id="equityScore">187</div>
+        <div class="equity-desc" id="equityDesc">Low-income tracts face 1.87× average flood exposure.</div>
+        <div class="equity-formula">FEI = (% inundated low-income) ÷ (% low-income tracts) × 100</div>
+        <button class="equity-detail-btn" id="equityDetailBtn">VIEW FULL ANALYSIS →</button>
       </div>
     </div>
 
-    <!-- Data Layer Toggles -->
-    <div class="sidebar-section">
-      <div class="section-label">DATA LAYERS</div>
-      <div class="layer-list">
-        <div class="layer-row active" id="layer-thermal" onclick="toggleLayer('thermal')">
-          <span class="layer-dot" style="background:#ff6d00"></span>
-          <span class="layer-name">SRTM Elevation DEM</span>
-          <div class="toggle-sw on" id="ts-thermal"></div>
-        </div>
-        <div class="layer-row" id="layer-sst" onclick="toggleLayer('sst')">
-          <span class="layer-dot" style="background:#ff1744"></span>
-          <span class="layer-name">MODIS SST Anomaly</span>
-          <div class="toggle-sw" id="ts-sst"></div>
-        </div>
-        <div class="layer-row" id="layer-gauges" onclick="toggleLayer('gauges')">
-          <span class="layer-dot" style="background:#00e5ff"></span>
-          <span class="layer-name">NOAA Tidal Gauges</span>
-          <div class="toggle-sw" id="ts-gauges"></div>
-        </div>
-        <div class="layer-row" id="layer-population" onclick="toggleLayer('population')">
-          <span class="layer-dot" style="background:#ffd600"></span>
-          <span class="layer-name">Population Density</span>
-          <div class="toggle-sw" id="ts-population"></div>
-        </div>
-        <div class="layer-row" id="layer-infrastructure" onclick="toggleLayer('infrastructure')">
-          <span class="layer-dot" style="background:#ff1744"></span>
-          <span class="layer-name">Critical Infrastructure</span>
-          <div class="toggle-sw" id="ts-infrastructure"></div>
-        </div>
-        <div class="layer-row" id="layer-fema" onclick="toggleLayer('fema')">
-          <span class="layer-dot" style="background:#e040fb"></span>
-          <span class="layer-name">FEMA Flood Zones</span>
-          <div class="toggle-sw" id="ts-fema"></div>
-        </div>
+    <div class="sidebar-section sidebar-footer">
+      <div class="section-label">DATA ATTRIBUTION</div>
+      <div class="source-list">
+        <div class="source-item">NASA SRTM v3.0 · LP DAAC · 30m resolution</div>
+        <div class="source-item">MODIS Terra/Aqua · Level-3 SST · 4km daily</div>
+        <div class="source-item">NOAA CO-OPS · Tidal Gauge Network · MHHW</div>
+        <div class="source-item">NOAA NHC · HURDAT2 Best Track Database</div>
+        <div class="source-item">US Census ACS 2022 · Table B19013</div>
+        <div class="source-item">IPCC AR6 · Table 9.9 · SSP2-4.5 scenario</div>
       </div>
     </div>
 
   </aside>
 
-  <!-- ── MAP + BOTTOM PANEL WRAPPER ────────────────────────────── -->
-  <div class="main-wrap">
+  <!-- MAIN CONTENT -->
+  <div class="main-content">
 
-    <!-- City Label Bar -->
-    <div class="map-topbar">
-      <div class="region-display">
-        <div class="region-name" id="regionName">Gulf Coast — Louisiana / Mississippi</div>
-        <div class="region-meta" id="regionMeta">28.5°N–31.5°N · 88°W–94°W · Benchmark: Hurricane Katrina (2005)</div>
+    <div class="map-header">
+      <div class="map-header-left">
+        <div class="region-title" id="regionTitle">Gulf Coast (Louisiana / Mississippi)</div>
+        <div class="region-meta" id="regionBenchmark">Benchmark: Hurricane Katrina (2005) · 27.8 ft surge</div>
       </div>
-      <div class="topbar-right">
-        <div class="scenario-badge" id="scenarioBadge">CAT 3 · +12.0 ft · 2024</div>
-        <div class="data-source-note">
-          NASA SRTM v3.0 · MODIS Terra/Aqua · NOAA CO-OPS · HURDAT2
+      <div class="map-header-right">
+        <div class="scenario-readout">
+          <span class="sr-label">ACTIVE SCENARIO</span>
+          <span class="sr-val" id="srCat">CAT 1</span>
+          <span class="sr-sep">+</span>
+          <span class="sr-val" id="srSlr">SLR 2024</span>
+          <span class="sr-sep">=</span>
+          <span class="sr-total" id="srTotal">4.2 ft total</span>
+        </div>
+        <div class="map-zoom-controls">
+          <button class="zoom-btn" id="zoomIn">+</button>
+          <button class="zoom-btn" id="zoomOut">−</button>
+          <button class="zoom-btn" id="zoomReset">⊙</button>
         </div>
       </div>
     </div>
 
-    <!-- CANVAS MAP -->
-    <div class="map-container" id="mapContainer">
-      <canvas id="mapCanvas"></canvas>
-
-      <!-- Hover tooltip -->
-      <div class="map-tooltip" id="mapTooltip" style="display:none;">
-        <div class="tooltip-coord" id="ttCoord">--</div>
-        <div class="tooltip-elev" id="ttElev">Elevation: --</div>
-        <div class="tooltip-risk" id="ttRisk">Risk: --</div>
-        <div class="tooltip-income" id="ttIncome">--</div>
+    <div class="map-wrap" id="mapWrap">
+      <canvas id="mainCanvas"></canvas>
+      <div class="map-tooltip" id="mapTooltip">
+        <div class="tt-coord" id="ttCoord">—</div>
+        <div class="tt-elev"  id="ttElev">— ft elevation</div>
+        <div class="tt-risk"  id="ttRisk">— flood risk</div>
+        <div class="tt-income" id="ttIncome">—</div>
       </div>
-
-      <!-- Map overlay controls -->
-      <div class="map-overlay-controls">
-        <div class="zoom-controls">
-          <button class="zoom-btn" onclick="mapZoom(1.25)" title="Zoom in">+</button>
-          <button class="zoom-btn" onclick="mapZoom(0.8)"  title="Zoom out">−</button>
-          <button class="zoom-btn" onclick="mapReset()"    title="Reset view">⊙</button>
+      <div class="track-popup" id="trackPopup">
+        <div class="tp-header">
+          <span class="tp-label" id="tpLabel">—</span>
+          <button class="tp-close" id="tpClose">✕</button>
+        </div>
+        <div class="tp-stats">
+          <div class="tp-stat"><span class="tp-stat-val" id="tpWind">—</span><span class="tp-stat-label">kt winds</span></div>
+          <div class="tp-stat"><span class="tp-stat-val" id="tpPressure">—</span><span class="tp-stat-label">mb pressure</span></div>
+          <div class="tp-stat"><span class="tp-stat-val" id="tpSurge">—</span><span class="tp-stat-label">ft surge</span></div>
         </div>
       </div>
-
-      <!-- Heat legend -->
-      <div class="heat-legend">
+      <div class="map-legend">
         <div class="legend-title">SURFACE ELEVATION</div>
-        <div class="legend-ramp"></div>
+        <div class="legend-bar"></div>
         <div class="legend-labels">
-          <span>Below SL</span>
-          <span>0–5 ft</span>
-          <span>5–15 ft</span>
-          <span>15–30 ft</span>
-          <span>Safe</span>
+          <span>Below SL</span><span>Low</span><span>Mid</span><span>Safe</span>
+        </div>
+        <div class="legend-items">
+          <div class="legend-item"><span class="legend-swatch flood-swatch"></span>Inundation zone</div>
+          <div class="legend-item"><span class="legend-swatch track-swatch"></span>Storm track</div>
+          <div class="legend-item"><span class="legend-swatch gauge-swatch"></span>Tidal gauge</div>
         </div>
       </div>
-
-      <!-- Surge legend -->
-      <div class="surge-legend" id="surgeLegend">
-        <div class="sl-dot flood"></div><span>Inundation Zone</span>
-        <div class="sl-dot hurricane"></div><span>Hurricane Track</span>
-        <div class="sl-dot gauge"></div><span>Tidal Gauge</span>
-      </div>
-
-      <!-- Loading overlay -->
       <div class="map-loading" id="mapLoading">
-        <div class="map-loader-ring"></div>
-        <div class="map-loader-text">FETCHING SATELLITE DATA</div>
+        <div class="loading-ring"></div>
+        <div class="loading-text" id="loadingText">Fetching satellite data…</div>
       </div>
     </div>
 
-    <!-- ── BOTTOM PANEL ──────────────────────────────────────────── -->
     <div class="bottom-panel">
-
-      <!-- Elevation histogram -->
-      <div class="bottom-section">
-        <div class="bottom-label">COASTAL ELEVATION PROFILE — 10mi RADIUS</div>
-        <div class="histogram-wrap">
-          <canvas id="histogramCanvas" width="280" height="80"></canvas>
-          <div class="histogram-surge-line" id="histSurgeLine"></div>
-        </div>
-        <div class="histogram-axis">
-          <span>0 ft</span><span>10 ft</span><span>20 ft</span><span>30+ ft</span>
-        </div>
+      <div class="panel-section">
+        <div class="panel-label">COASTAL ELEVATION DISTRIBUTION</div>
+        <div class="elev-hist" id="elevHist"></div>
       </div>
-
-      <!-- Historical surge timeline -->
-      <div class="bottom-section flex-2">
-        <div class="bottom-label">HISTORICAL STORM SURGE RECORD — NOAA CO-OPS</div>
-        <div class="timeline-wrap">
-          <canvas id="timelineCanvas" width="480" height="80"></canvas>
-        </div>
-        <div class="timeline-axis" id="timelineAxis"></div>
+      <div class="panel-section panel-section--wide">
+        <div class="panel-label">HISTORICAL STORM SURGE RECORD</div>
+        <canvas id="surgeChart"></canvas>
       </div>
-
-      <!-- Inundation summary table -->
-      <div class="bottom-section">
-        <div class="bottom-label">SCENARIO SUMMARY</div>
+      <div class="panel-section">
+        <div class="panel-label">SCENARIO SUMMARY TABLE</div>
         <table class="summary-table" id="summaryTable">
-          <thead>
-            <tr>
-              <th>CAT</th>
-              <th>AREA km²</th>
-              <th>POPULATION</th>
-              <th>HOSPITALS</th>
-              <th>FEI</th>
-            </tr>
-          </thead>
-          <tbody id="summaryTableBody">
-            <tr><td colspan="5" class="table-loading">LOADING DATA…</td></tr>
+          <thead><tr><th>METRIC</th><th>VALUE</th><th>STATUS</th></tr></thead>
+          <tbody id="summaryTbody">
+            <tr><td colspan="3" class="table-loading">Loading…</td></tr>
           </tbody>
         </table>
       </div>
-
     </div>
+
   </div>
 </div>
 
-<!-- ══════════════════════════════════════════════════════════════
-     METHODOLOGY MODAL
-════════════════════════════════════════════════════════════════ -->
-<div class="modal-overlay" id="methodModal" style="display:none;">
-  <div class="modal modal-wide">
-    <div class="modal-header">
-      <span class="modal-icon">⊕</span>
-      <span class="modal-title">SCIENTIFIC METHODOLOGY</span>
-      <button class="modal-close" onclick="closeMethodModal()">✕</button>
-    </div>
-    <div class="modal-body">
-      <p><strong>Elevation Model:</strong> NASA SRTM v3.0 (SRTMGL1) — 1 arc-second (~30m) resolution, void-filled, reprojected to WGS84. Values converted from meters to feet.</p>
-      <p><strong>Inundation Model:</strong> Coastal flood-fill BFS algorithm. Pixel inundated if: <code>elevation_ft ≤ surge_height_ft + SLR_offset_ft</code> AND hydrologically connected to ocean from coastline pixels. More accurate than pure threshold — disconnected inland depressions excluded.</p>
-      <p><strong>Sea Surface Temperature:</strong> MODIS Level-3 4km daily composites via NASA OPeNDAP. Anomaly = deviation from 1985–2012 climatological baseline. SST &gt;+0.5°C in Main Development Region correlates with intensification (Emanuel 1987, Webster et al. 1995).</p>
-      <p><strong>Tidal Baseline:</strong> NOAA MHHW (Mean Higher High Water) — 19-year tidal epoch. All surge heights measured above MHHW.</p>
-      <p><strong>SLR Scenarios:</strong> IPCC AR6 Table 9.9, Intermediate (SSP2-4.5): +0.30m by 2050, +0.56m by 2075, +1.01m by 2100.</p>
-      <p><strong>Flood Equity Index:</strong> FEI = (% inundated land in low-income tracts) ÷ (% low-income tracts in region) × 100. Source: US Census ACS B19013.</p>
-      <p><strong>Limitation:</strong> Bathtub model does not simulate wave dynamics or time-dependent surge. SLOSH or ADCIRC required for operational evacuation planning.</p>
-    </div>
-    <div class="modal-footer">
-      <button class="btn-primary" onclick="closeMethodModal()">CLOSE</button>
-    </div>
-  </div>
-</div>
-
-<!-- FOOTER -->
-<footer class="footer">
-  <span>NASA SRTM v3.0 (LP DAAC) · MODIS Terra/Aqua Level-3 SST · NOAA CO-OPS · HURDAT2 · IPCC AR6 Table 9.9 · US Census ACS 2022 · FEMA NFIP</span>
-  <button class="footer-method-btn" onclick="openMethodModal()">METHODOLOGY</button>
-  <span>TIDEWATCH v1.0 · MIT License · Not for operational emergency use</span>
+<footer class="app-footer">
+  <span>TIDEWATCH v1.0.0</span>
+  <span class="footer-sep">·</span>
+  <span>NASA SRTM v3.0 · MODIS Terra/Aqua · NOAA CO-OPS · HURDAT2 · IPCC AR6</span>
+  <span class="footer-sep">·</span>
+  <button class="footer-link" id="methodBtn">METHODOLOGY</button>
+  <span class="footer-sep">·</span>
+  <a class="footer-link" href="https://github.com/yourname/tidewatch" target="_blank" rel="noopener">GITHUB</a>
+  <span class="footer-sep">·</span>
+  <span>MIT License</span>
 </footer>
 
-<!-- JS modules -->
-<script src="js/api.js"></script>
-<script src="js/map.js"></script>
-<script src="js/surge.js"></script>
-<script src="js/hurricane.js"></script>
-<script src="js/charts.js"></script>
-<script src="js/ui.js"></script>
-<script src="js/main.js"></script>
-
+<script type="module" src="js/main.js"></script>
 </body>
 </html>

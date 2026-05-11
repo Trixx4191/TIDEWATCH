@@ -19,7 +19,7 @@ import time
 import json
 import argparse
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fetch_srtm             import fetch_srtm,             REGIONS
 from fetch_noaa_tides       import fetch_tides,             REGION_STATIONS
@@ -65,7 +65,7 @@ def run_pipeline(regions: list, skip_srtm: bool = False) -> dict:
         Summary dict with per-region status and file inventory
     """
     summary = {
-        "generated_at": datetime.utcnow().isoformat() + "Z",
+        "generated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "regions": {},
     }
 
@@ -73,7 +73,7 @@ def run_pipeline(regions: list, skip_srtm: bool = False) -> dict:
     print("\n" + "═"*60)
     print("  TIDEWATCH DATA PIPELINE")
     print(f"  Regions: {', '.join(regions)}")
-    print(f"  Started: {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}")
+    print(f"  Started: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}")
     print("═"*60)
 
     for region_key in regions:

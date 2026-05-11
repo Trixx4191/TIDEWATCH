@@ -1,0 +1,465 @@
+/* =============================================================================
+   TIDEWATCH — components.css
+   Modals, tooltips, banners, map overlays, loading states, track popup.
+   ============================================================================= */
+
+/* ── CAT5 CATASTROPHIC ALERT BANNER ─────────────────────────────────────────── */
+.cat5-banner {
+  position: fixed;
+  top: var(--header-h);
+  left: 0; right: 0;
+  z-index: 500;
+  transform: translateY(-120%);
+  transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
+}
+
+.cat5-banner.visible {
+  transform: translateY(0);
+  pointer-events: all;
+}
+
+.cat5-banner-inner {
+  background: var(--caution);
+  color: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 10px 20px;
+  font-family: var(--font-data);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  animation: banner-pulse 2s ease-in-out infinite;
+  border-bottom: 2px solid rgba(0,0,0,0.3);
+}
+
+@keyframes banner-pulse {
+  0%, 100% { background: var(--caution); }
+  50%       { background: #ffea00; }
+}
+
+.cat5-icon {
+  font-size: 18px;
+  animation: icon-shake 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes icon-shake {
+  from { transform: rotate(-8deg); }
+  to   { transform: rotate(8deg); }
+}
+
+.cat5-text { flex: 1; text-align: center; }
+
+.cat5-dismiss {
+  background: rgba(0,0,0,0.2);
+  border: 1px solid rgba(0,0,0,0.3);
+  color: #000;
+  font-family: var(--font-data);
+  font-size: 14px;
+  width: 24px; height: 24px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.cat5-dismiss:hover { background: rgba(0,0,0,0.35); }
+
+/* ── MODAL OVERLAY ───────────────────────────────────────────────────────────── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(3,8,16,0.88);
+  z-index: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+  backdrop-filter: blur(4px);
+}
+
+.modal-overlay.visible {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.modal-box {
+  background: var(--panel);
+  border: 1px solid var(--border-bright);
+  max-width: 520px;
+  width: 90%;
+  box-shadow: 0 0 60px rgba(0,229,255,0.08), 0 0 120px rgba(0,0,0,0.8);
+  animation: fadeUp 0.3s ease both;
+}
+
+.modal-box--wide { max-width: 720px; }
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  background: var(--deep);
+}
+
+.modal-icon { font-size: 18px; color: var(--catastrophic); }
+
+.modal-title {
+  flex: 1;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  color: var(--text);
+}
+
+.modal-close {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 14px;
+  width: 26px; height: 26px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: var(--font-data);
+}
+
+.modal-close:hover { border-color: var(--catastrophic); color: var(--catastrophic); }
+
+.modal-body { padding: 20px 18px; }
+
+/* Equity modal specifics */
+.modal-fei {
+  font-family: var(--font-display);
+  font-size: 40px;
+  color: var(--catastrophic);
+  text-shadow: 0 0 24px rgba(255,23,68,0.5);
+  margin-bottom: 12px;
+  line-height: 1;
+}
+
+.modal-desc {
+  font-size: 12px;
+  color: var(--text-dim);
+  line-height: 1.7;
+  margin-bottom: 20px;
+}
+
+.modal-desc strong { color: var(--text); }
+
+.modal-stat-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.modal-stat {
+  background: var(--void);
+  border: 1px solid var(--border);
+  padding: 12px;
+  text-align: center;
+}
+
+.modal-stat-val {
+  font-family: var(--font-display);
+  font-size: 24px;
+  color: var(--caution);
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.modal-stat-label { font-size: 8px; color: var(--muted); letter-spacing: 1px; }
+
+.modal-source { font-size: 8px; color: var(--muted); letter-spacing: 1px; border-top: 1px solid var(--border); padding-top: 12px; }
+
+/* Methodology modal grid */
+.method-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.method-item {
+  background: var(--void);
+  border: 1px solid var(--border);
+  padding: 12px;
+}
+
+.method-title {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--safe);
+  margin-bottom: 6px;
+}
+
+.method-text { font-size: 10px; color: var(--text-dim); line-height: 1.6; }
+
+.method-footer {
+  font-size: 9px;
+  color: var(--muted);
+  line-height: 1.5;
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+  font-style: italic;
+}
+
+/* ── MAP TOOLTIP ─────────────────────────────────────────────────────────────── */
+.map-tooltip {
+  position: absolute;
+  background: rgba(6,13,26,0.95);
+  border: 1px solid var(--border-bright);
+  padding: 10px 12px;
+  pointer-events: none;
+  display: none;
+  z-index: 20;
+  backdrop-filter: blur(8px);
+  min-width: 160px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+}
+
+.map-tooltip.visible { display: block; }
+
+.tt-coord  { font-size: 9px; color: var(--muted); letter-spacing: 1px; margin-bottom: 6px; }
+.tt-elev   { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 3px; }
+.tt-risk   { font-size: 10px; margin-bottom: 3px; }
+.tt-income { font-size: 9px; color: var(--muted); margin-bottom: 2px; }
+
+/* ── STORM TRACK NODE POPUP ──────────────────────────────────────────────────── */
+.track-popup {
+  position: absolute;
+  background: rgba(6,13,26,0.96);
+  border: 1px solid var(--hurricane);
+  padding: 0;
+  display: none;
+  z-index: 30;
+  min-width: 180px;
+  box-shadow: 0 0 20px rgba(224,64,251,0.2);
+  animation: fadeUp 0.2s ease both;
+}
+
+.track-popup.visible { display: block; }
+
+.tp-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: rgba(224,64,251,0.1);
+  border-bottom: 1px solid rgba(224,64,251,0.3);
+}
+
+.tp-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--hurricane);
+  letter-spacing: 1px;
+}
+
+.tp-close {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 12px;
+  cursor: pointer;
+  font-family: var(--font-data);
+  transition: color 0.15s;
+}
+
+.tp-close:hover { color: var(--hurricane); }
+
+.tp-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  padding: 10px 12px;
+  gap: 8px;
+}
+
+.tp-stat { display: flex; flex-direction: column; align-items: center; text-align: center; }
+
+.tp-stat-val {
+  font-family: var(--font-display);
+  font-size: 20px;
+  color: var(--hurricane);
+  line-height: 1;
+  margin-bottom: 3px;
+}
+
+.tp-stat-label { font-size: 7px; color: var(--muted); letter-spacing: 1px; }
+
+/* ── MAP LEGEND ──────────────────────────────────────────────────────────────── */
+.map-legend {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  background: rgba(6,13,26,0.92);
+  border: 1px solid var(--border-bright);
+  padding: 12px 14px;
+  backdrop-filter: blur(10px);
+  min-width: 160px;
+}
+
+.legend-title {
+  font-size: 7px;
+  letter-spacing: 2px;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.legend-bar {
+  width: 100%;
+  height: 6px;
+  background: linear-gradient(90deg,
+    #001133 0%,
+    #003366 15%,
+    #00e5ff 30%,
+    #69f0ae 45%,
+    #ffd600 60%,
+    #ff6d00 75%,
+    #ff1744 100%
+  );
+  margin-bottom: 4px;
+}
+
+.legend-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 7px;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+
+.legend-items { display: flex; flex-direction: column; gap: 5px; }
+.legend-item { display: flex; align-items: center; gap: 6px; font-size: 9px; color: var(--text-dim); }
+
+.legend-swatch { width: 12px; height: 8px; flex-shrink: 0; }
+.flood-swatch  { background: rgba(255,23,68,0.55); border: 1px solid var(--catastrophic); }
+.track-swatch  { background: none; border-top: 2px dashed var(--hurricane); }
+.gauge-swatch  { background: var(--safe); border-radius: 50%; width: 8px; height: 8px; margin: 0 2px; }
+
+/* ── MAP LOADING OVERLAY ─────────────────────────────────────────────────────── */
+.map-loading {
+  position: absolute;
+  inset: 0;
+  background: rgba(3,8,16,0.85);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  z-index: 40;
+  opacity: 1;
+  transition: opacity 0.3s ease;
+  backdrop-filter: blur(4px);
+}
+
+.map-loading.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.loading-ring {
+  width: 44px; height: 44px;
+  border: 2px solid var(--border-bright);
+  border-top-color: var(--safe);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.loading-text {
+  font-size: 10px;
+  letter-spacing: 3px;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+/* ── GAUGE HOVER SPARKLINE POPUP ─────────────────────────────────────────────── */
+.gauge-popup {
+  position: absolute;
+  background: rgba(6,13,26,0.96);
+  border: 1px solid var(--safe);
+  padding: 10px 12px;
+  z-index: 25;
+  display: none;
+  min-width: 200px;
+  box-shadow: 0 0 16px rgba(0,229,255,0.15);
+  pointer-events: none;
+}
+
+.gauge-popup.visible { display: block; }
+
+.gauge-popup-name {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--safe);
+  margin-bottom: 4px;
+  letter-spacing: 0.5px;
+}
+
+.gauge-popup-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.gauge-popup-stat { display: flex; flex-direction: column; }
+.gauge-popup-val { font-size: 13px; font-weight: 700; color: var(--text); }
+.gauge-popup-label { font-size: 7px; color: var(--muted); letter-spacing: 1px; }
+
+.gauge-sparkline { width: 100%; height: 32px; }
+
+/* ── STATUS TAGS IN TABLE ────────────────────────────────────────────────────── */
+.status-tag {
+  display: inline-block;
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  padding: 2px 5px;
+}
+
+.status-tag.safe         { background: rgba(0,229,255,0.12);  color: var(--safe); }
+.status-tag.caution      { background: rgba(255,214,0,0.12);  color: var(--caution); }
+.status-tag.danger       { background: rgba(255,109,0,0.12);  color: var(--danger); }
+.status-tag.catastrophic { background: rgba(255,23,68,0.12);  color: var(--catastrophic); }
+.status-tag.critical     { background: rgba(255,23,68,0.2);   color: var(--catastrophic); border: 1px solid var(--catastrophic); }
+
+/* ── METRIC VALUE ANIMATE-IN ─────────────────────────────────────────────────── */
+.metric-val.updating {
+  opacity: 0.3;
+  transition: opacity 0.15s;
+}
+
+.metric-val.updated {
+  opacity: 1;
+  transition: opacity 0.3s;
+}
+
+/* ── INFRASTRUCTURE ICON PULSE ───────────────────────────────────────────────── */
+@keyframes infra-pulse {
+  0%   { r: 6; opacity: 1; }
+  50%  { r: 10; opacity: 0.5; }
+  100% { r: 6; opacity: 1; }
+}
+
+/* ── RESPONSIVE (narrow screens) ────────────────────────────────────────────── */
+@media (max-width: 960px) {
+  :root { --sidebar-w: 240px; }
+  .method-grid { grid-template-columns: 1fr; }
+  .modal-stat-row { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 700px) {
+  .layout { grid-template-columns: 1fr; }
+  .sidebar { max-height: 40vh; }
+  .logo-sources { display: none; }
+  .agency-tags { display: none; }
+  .bottom-panel { flex-direction: column; height: auto; }
+}
