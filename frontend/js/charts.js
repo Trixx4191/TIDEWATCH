@@ -92,6 +92,100 @@ export function drawElevHistogram(regionKey, surgeThresholdFt) {
   });
 }
 
+export function drawParameterHistogram(regionKey, parameter, surgeThresholdFt) {
+  const container = document.getElementById("elevHist");
+  if (!container) return;
+  container.innerHTML = "";
+
+  const bands = generateParameterBands(regionKey, parameter, surgeThresholdFt);
+  const maxValue = Math.max(...bands.map(b => b.value));
+
+  bands.forEach(band => {
+    const barWrap = document.createElement("div");
+    barWrap.style.cssText = `
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
+      position: relative;
+      cursor: pointer;
+    `;
+
+    const bar = document.createElement("div");
+    bar.style.cssText = `
+      width: 100%;
+      height: ${(band.value / maxValue) * 100}%;
+      background: ${band.color};
+      border-top: 1px solid ${band.edge};
+      transition: height 0.4s ease, background 0.3s;
+    `;
+    bar.title = `${band.label}: ${band.readout}`;
+
+    const label = document.createElement("div");
+    label.style.cssText = `
+      font-size: 7px;
+      color: #3d5a8a;
+      margin-top: 3px;
+      text-align: center;
+      white-space: nowrap;
+      font-family: 'IBM Plex Mono', monospace;
+      writing-mode: vertical-rl;
+      transform: rotate(180deg);
+      height: 34px;
+    `;
+    label.textContent = band.label;
+
+    barWrap.appendChild(bar);
+    barWrap.appendChild(label);
+    container.appendChild(barWrap);
+  });
+}
+
+function generateParameterBands(regionKey, parameter, surgeThresholdFt) {
+  const regionBias = {
+    gulf_coast: 1.15, atlantic: 0.92, florida: 1.28, pacific: 0.58, caribbean: 1.35, bay_of_bengal: 1.48,
+  }[regionKey] || 1;
+
+  if (parameter === "heat") {
+    return [
+      { label: "-0.5C", value: 0.18, color: "rgba(0,229,255,0.38)", edge: "#00e5ff", readout: "cool anomaly" },
+      { label: "+0.0C", value: 0.32, color: "rgba(105,240,174,0.42)", edge: "#69f0ae", readout: "near climatology" },
+      { label: "+0.5C", value: 0.54 * regionBias, color: "rgba(255,214,0,0.58)", edge: "#ffd600", readout: "storm-favorable warmth" },
+      { label: "+1.0C", value: 0.46 * regionBias, color: "rgba(255,109,0,0.62)", edge: "#ff6d00", readout: "high intensification potential" },
+      { label: "+2.0C", value: 0.25 * regionBias, color: "rgba(255,23,68,0.68)", edge: "#ff1744", readout: "extreme marine heat" },
+    ];
+  }
+
+  if (parameter === "equity") {
+    return [
+      { label: "FEI<100", value: 0.18, color: "rgba(0,229,255,0.42)", edge: "#00e5ff", readout: "below average exposure" },
+      { label: "100", value: 0.28, color: "rgba(105,240,174,0.45)", edge: "#69f0ae", readout: "regional average" },
+      { label: "150", value: 0.42 * regionBias, color: "rgba(255,214,0,0.58)", edge: "#ffd600", readout: "elevated disparity" },
+      { label: "200", value: 0.38 * regionBias, color: "rgba(255,109,0,0.64)", edge: "#ff6d00", readout: "high disparity" },
+      { label: "300+", value: 0.18 * regionBias, color: "rgba(255,23,68,0.70)", edge: "#ff1744", readout: "critical disparity" },
+    ];
+  }
+
+  if (parameter === "elevation") {
+    return generateElevBands(regionKey).map(band => ({
+      label: `${band.elev}ft`,
+      value: band.area,
+      color: band.elev <= 5 ? "rgba(255,109,0,0.62)" : band.elev <= 15 ? "rgba(255,214,0,0.52)" : "rgba(105,240,174,0.48)",
+      edge: band.elev <= 5 ? "#ff6d00" : band.elev <= 15 ? "#ffd600" : "#69f0ae",
+      readout: `${(band.area * 100).toFixed(0)}% of coastal land`,
+    }));
+  }
+
+  return [
+    { label: "0ft", value: 0.22, color: "rgba(0,229,255,0.35)", edge: "#00e5ff", readout: "dry or trace flooding" },
+    { label: "2ft", value: Math.min(1, surgeThresholdFt / 12) * 0.34, color: "rgba(255,214,0,0.52)", edge: "#ffd600", readout: "nuisance flooding" },
+    { label: "5ft", value: Math.min(1, surgeThresholdFt / 18) * 0.48, color: "rgba(255,109,0,0.62)", edge: "#ff6d00", readout: "dangerous inundation" },
+    { label: "10ft", value: Math.min(1, surgeThresholdFt / 28) * 0.38, color: "rgba(255,23,68,0.70)", edge: "#ff1744", readout: "life-threatening depth" },
+    { label: "15ft+", value: Math.min(1, surgeThresholdFt / 35) * 0.22, color: "rgba(224,64,251,0.60)", edge: "#e040fb", readout: "catastrophic depth" },
+  ];
+}
+
 /**
  * Generate realistic elevation band data for a region.
  * Based on SRTM statistical profiles for each coastal area.

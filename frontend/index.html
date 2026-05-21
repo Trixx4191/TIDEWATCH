@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TIDEWATCH — Coastal Flood Vulnerability Atlas</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;700&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/main.css">
 <link rel="stylesheet" href="css/components.css">
 </head>
@@ -133,6 +133,31 @@
 
   <!-- SIDEBAR -->
   <aside class="sidebar">
+
+    <div class="sidebar-section">
+      <div class="section-label">VIEW MODE</div>
+      <div class="segmented-control" id="viewModeBtns" aria-label="Map view mode">
+        <button class="segment-btn active" data-view-mode="earth">Earth</button>
+        <button class="segment-btn" data-view-mode="analysis">Analysis</button>
+      </div>
+      <div class="select-group">
+        <label class="select-label" for="earthTileSelect">NASA EARTHDATA TILE</label>
+        <select class="tw-select" id="earthTileSelect">
+          <option value="MODIS_Terra_CorrectedReflectance_TrueColor">MODIS Terra True Color</option>
+          <option value="VIIRS_SNPP_CorrectedReflectance_TrueColor">VIIRS SNPP True Color</option>
+          <option value="BlueMarble_ShadedRelief_Bathymetry">Blue Marble Relief</option>
+        </select>
+      </div>
+      <div class="select-group">
+        <label class="select-label" for="parameterSelect">PARAMETER COLOR</label>
+        <select class="tw-select" id="parameterSelect">
+          <option value="flood">Flood depth</option>
+          <option value="heat">SST heat anomaly</option>
+          <option value="elevation">Elevation risk</option>
+          <option value="equity">Flood Equity Index</option>
+        </select>
+      </div>
+    </div>
 
     <div class="sidebar-section">
       <div class="section-label">COASTAL REGION</div>
@@ -309,7 +334,15 @@
     </div>
 
     <div class="map-wrap" id="mapWrap">
+      <div class="earth-tiles" id="earthTiles" aria-hidden="true"></div>
       <canvas id="mainCanvas"></canvas>
+      <div class="tile-readout" id="tileReadout">
+        <div>
+          <span id="tileName">MODIS Terra True Color</span>
+          <span id="tileCoords">z7 / loading tile matrix</span>
+        </div>
+        <button class="tile-select-btn" id="selectCenterTile">Select center tile</button>
+      </div>
       <div class="map-tooltip" id="mapTooltip">
         <div class="tt-coord" id="ttCoord">—</div>
         <div class="tt-elev"  id="ttElev">— ft elevation</div>
@@ -328,13 +361,14 @@
         </div>
       </div>
       <div class="map-legend">
-        <div class="legend-title">SURFACE ELEVATION</div>
+        <div class="legend-title" id="legendTitle">FLOOD DEPTH</div>
         <div class="legend-bar"></div>
         <div class="legend-labels">
-          <span>Below SL</span><span>Low</span><span>Mid</span><span>Safe</span>
+          <span id="legendMin">Dry</span><span id="legendMidLow">Shallow</span><span id="legendMidHigh">Deep</span><span id="legendMax">Extreme</span>
         </div>
         <div class="legend-items">
           <div class="legend-item"><span class="legend-swatch flood-swatch"></span>Inundation zone</div>
+          <div class="legend-item"><span class="legend-swatch heat-swatch"></span>Heat anomaly</div>
           <div class="legend-item"><span class="legend-swatch track-swatch"></span>Storm track</div>
           <div class="legend-item"><span class="legend-swatch gauge-swatch"></span>Tidal gauge</div>
         </div>
@@ -347,7 +381,13 @@
 
     <div class="bottom-panel">
       <div class="panel-section">
-        <div class="panel-label">COASTAL ELEVATION DISTRIBUTION</div>
+        <div class="panel-head">
+          <div class="panel-label" id="histPanelLabel">COASTAL ELEVATION DISTRIBUTION</div>
+          <div class="mini-toggle" id="graphModeBtns">
+            <button class="mini-toggle-btn active" data-graph-mode="elevation">Elevation</button>
+            <button class="mini-toggle-btn" data-graph-mode="parameter">Parameter</button>
+          </div>
+        </div>
         <div class="elev-hist" id="elevHist"></div>
       </div>
       <div class="panel-section panel-section--wide">
