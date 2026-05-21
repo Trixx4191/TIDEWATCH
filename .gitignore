@@ -16,12 +16,12 @@ env/
 node_modules/
 npm-debug.log*
 
-# Data (large processed files — not committed)
+# Data (large processed files)
 data/raw/
 data/processed/*.json
 data/processed/*.tif
 data/processed/*.hgt
-
+not committed)
 # Keep pipeline manifest for reproducibility
 !data/processed/pipeline_manifest.json
 
