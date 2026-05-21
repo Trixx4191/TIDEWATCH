@@ -90,10 +90,13 @@ that historical event exceeded the currently selected surge plus SLR scenario.
 ## Reading The Map
 
 1. Choose **Earth** when you want the NASA tile context.
-2. Choose the NASA tile source that best reveals the coast.
-3. Click the Earth map to select a NASA tile. The readout reports the selected
-   `z / x,y` tile matrix coordinate for traceability.
-4. Select a parameter color layer: flood, heat, elevation, or equity.
-5. Use the storm category and SLR controls to change the flood threshold.
-6. Switch the graph mode to **Parameter** when you want the bottom chart to
+2. Drag the Earth view to explore the NASA tile matrix.
+3. Use the map zoom buttons or mouse wheel to move between tile zoom levels.
+4. Choose the NASA tile source that best reveals the coast.
+5. Click a tile after navigating, or press **Select center tile**, to lock a
+   NASA tile selection. The readout reports the selected `z / x,y` tile matrix
+   coordinate for traceability.
+6. Select a parameter color layer: flood, heat, elevation, or equity.
+7. Use the storm category and SLR controls to change the flood threshold.
+8. Switch the graph mode to **Parameter** when you want the bottom chart to
    explain the selected overlay rather than elevation alone.
