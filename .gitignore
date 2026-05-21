@@ -25,6 +25,12 @@ data/processed/*.hgt
 # Keep pipeline manifest for reproducibility
 !data/processed/pipeline_manifest.json
 
+# Docs: only keep a small curated set in Git
+/docs/*
+!/docs/Color_And_Graph_Guide.md
+!/docs/Methodology.md
+!/docs/TIDEWATCH_Overview.md
+
 # OS
 .DS_Store
 Thumbs.db
