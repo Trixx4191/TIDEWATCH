@@ -299,6 +299,7 @@
   position: absolute;
   bottom: 16px;
   right: 16px;
+  z-index: 12;
   background: rgba(6,13,26,0.92);
   border: 1px solid var(--border-bright);
   padding: 12px 14px;
@@ -328,6 +329,22 @@
   margin-bottom: 4px;
 }
 
+.legend-bar.flood {
+  background: linear-gradient(90deg, rgba(0,229,255,0.25), #00e5ff 22%, #ffd600 48%, #ff6d00 72%, #ff1744 100%);
+}
+
+.legend-bar.heat {
+  background: linear-gradient(90deg, #213d8f 0%, #00e5ff 25%, #69f0ae 45%, #ffd600 62%, #ff6d00 80%, #ff1744 100%);
+}
+
+.legend-bar.elevation {
+  background: linear-gradient(90deg, #001133 0%, #0064a0 24%, #00b4c8 36%, #69f0ae 55%, #ffd600 76%, #787878 100%);
+}
+
+.legend-bar.equity {
+  background: linear-gradient(90deg, #00e5ff 0%, #69f0ae 32%, #ffd600 56%, #ff6d00 78%, #ff1744 100%);
+}
+
 .legend-labels {
   display: flex;
   justify-content: space-between;
@@ -341,6 +358,7 @@
 
 .legend-swatch { width: 12px; height: 8px; flex-shrink: 0; }
 .flood-swatch  { background: rgba(255,23,68,0.55); border: 1px solid var(--catastrophic); }
+.heat-swatch   { background: linear-gradient(90deg, #ffd600, #ff1744); border: 1px solid var(--danger); }
 .track-swatch  { background: none; border-top: 2px dashed var(--hurricane); }
 .gauge-swatch  { background: var(--safe); border-radius: 50%; width: 8px; height: 8px; margin: 0 2px; }
 

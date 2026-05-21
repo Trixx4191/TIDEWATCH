@@ -9,10 +9,10 @@
  */
 
 import { fetchRegions, fetchSurge, fetchStorms, fetchTides, interpolateSLR, FALLBACK_REGIONS, FALLBACK_TRACKS, FALLBACK_TIDES } from "./api.js";
-import { resizeCanvas, drawBaseTerrain, drawOcean, drawSSTAnomaly, drawTidalGauges, drawInfrastructure, drawPopulationDensity, drawFEMAZones, initMapHover, zoom, resetZoom } from "./map.js";
+import { resizeCanvas, drawBaseTerrain, drawOcean, drawSSTAnomaly, drawParameterOverlay, drawTidalGauges, drawInfrastructure, drawPopulationDensity, drawFEMAZones, initMapHover, zoom, resetZoom } from "./map.js";
 import { animateFlood, setSurgeImmediate, normalizeSurge, triggerCat5Banner, hideCat5Banner, resetBannerState } from "./surge.js";
 import { animateTrack, stopTrackAnimation, drawLandfallMarker } from "./hurricane.js";
-import { drawElevHistogram, drawSurgeTimeline, updateSummaryTable, animateCount } from "./charts.js";
+import { drawElevHistogram, drawParameterHistogram, drawSurgeTimeline, updateSummaryTable, animateCount } from "./charts.js";
 
 // ── SHARED APPLICATION STATE ──────────────────────────────────────────────────
 // Exported so map.js / surge.js / hurricane.js can read it
@@ -29,6 +29,12 @@ export const state = {
   tracksData:       null,
   regionMeta:       null,
   cat5BannerVisible: false,
+  viewMode:         "earth",
+  earthTile:        "MODIS_Terra_CorrectedReflectance_TrueColor",
+  parameter:        "flood",
+  graphMode:        "elevation",
+  selectedTile:     null,
+  earthView:        { lat: 29.5, lon: -90.5, zoom: 7 },
   layers: {
     elevation:      true,
     sst:            false,
@@ -44,6 +50,48 @@ const canvas       = document.getElementById("mainCanvas");
 const mapWrap      = document.getElementById("mapWrap");
 const mapLoading   = document.getElementById("mapLoading");
 const loadingText  = document.getElementById("loadingText");
+const earthTiles   = document.getElementById("earthTiles");
+let earthRenderFrame = null;
+let earthPointer = {
+  active: false,
+  moved: false,
+  x: 0,
+  y: 0,
+  startX: 0,
+  startY: 0,
+  centerX: 0,
+  centerY: 0,
+};
+
+const NASA_TILE_LAYERS = {
+  MODIS_Terra_CorrectedReflectance_TrueColor: {
+    label: "MODIS Terra True Color",
+    format: "jpg",
+    matrixSet: "GoogleMapsCompatible_Level9",
+    date: "2024-09-01",
+  },
+  VIIRS_SNPP_CorrectedReflectance_TrueColor: {
+    label: "VIIRS SNPP True Color",
+    format: "jpg",
+    matrixSet: "GoogleMapsCompatible_Level9",
+    date: "2024-09-01",
+  },
+  BlueMarble_ShadedRelief_Bathymetry: {
+    label: "Blue Marble Relief",
+    format: "jpeg",
+    matrixSet: "GoogleMapsCompatible_Level8",
+    date: "default",
+  },
+};
+
+const REGION_TILE_VIEWS = {
+  gulf_coast:    { lat: 29.5, lon: -90.5, zoom: 7 },
+  atlantic:      { lat: 40.2, lon: -73.9, zoom: 7 },
+  florida:       { lat: 27.7, lon: -81.6, zoom: 7 },
+  pacific:       { lat: 37.1, lon: -122.1, zoom: 7 },
+  caribbean:     { lat: 18.3, lon: -66.2, zoom: 7 },
+  bay_of_bengal: { lat: 21.9, lon: 90.1,  zoom: 7 },
+};
 
 // ── UTC CLOCK ─────────────────────────────────────────────────────────────────
 function startClock() {
@@ -69,22 +117,210 @@ function hideLoading() {
   mapLoading.classList.add("hidden");
 }
 
+// ── NASA EARTHDATA / GIBS TILE VIEW ───────────────────────────────────────────
+function updateEarthTiles() {
+  if (!earthTiles) return;
+  earthTiles.innerHTML = "";
+  earthTiles.classList.toggle("hidden", state.viewMode !== "earth");
+  document.getElementById("tileReadout")?.classList.toggle("hidden", state.viewMode !== "earth");
+  if (state.viewMode !== "earth") return;
+
+  const view = state.earthView || REGION_TILE_VIEWS[state.region] || REGION_TILE_VIEWS.gulf_coast;
+  const layer = NASA_TILE_LAYERS[state.earthTile] || NASA_TILE_LAYERS.MODIS_Terra_CorrectedReflectance_TrueColor;
+  const zoom = view.zoom;
+  const scale = 2 ** zoom;
+  const centerX = lonToTileX(view.lon, zoom);
+  const centerY = latToTileY(view.lat, zoom);
+  const cols = Math.ceil(mapWrap.clientWidth / 256) + 2;
+  const rows = Math.ceil(mapWrap.clientHeight / 256) + 2;
+  const startX = Math.floor(centerX - cols / 2);
+  const startY = Math.floor(centerY - rows / 2);
+  const offsetX = Math.round(mapWrap.clientWidth / 2 - (centerX - startX) * 256);
+  const offsetY = Math.round(mapWrap.clientHeight / 2 - (centerY - startY) * 256);
+
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      const x = ((startX + col) % scale + scale) % scale;
+      const y = Math.max(0, Math.min(scale - 1, startY + row));
+      const img = document.createElement("img");
+      img.className = "earth-tile";
+      img.alt = "";
+      img.loading = "lazy";
+      img.decoding = "async";
+      img.style.left = `${offsetX + col * 256}px`;
+      img.style.top = `${offsetY + row * 256}px`;
+      img.dataset.tileX = x;
+      img.dataset.tileY = y;
+      img.dataset.tileZ = zoom;
+      img.classList.toggle("selected",
+        state.selectedTile?.z === zoom &&
+        state.selectedTile?.x === x &&
+        state.selectedTile?.y === y);
+      img.src = nasaTileUrl(state.earthTile, layer, zoom, x, y);
+      earthTiles.appendChild(img);
+    }
+  }
+
+  document.getElementById("tileName").textContent = layer.label;
+  document.getElementById("tileCoords").textContent =
+    state.selectedTile
+      ? `selected z${state.selectedTile.z} / ${state.selectedTile.x},${state.selectedTile.y}`
+      : `center z${zoom} / ${Math.floor(centerX)},${Math.floor(centerY)} / ${view.lat.toFixed(2)}, ${view.lon.toFixed(2)}`;
+}
+
+function scheduleEarthTiles() {
+  if (earthRenderFrame) cancelAnimationFrame(earthRenderFrame);
+  earthRenderFrame = requestAnimationFrame(() => {
+    earthRenderFrame = null;
+    updateEarthTiles();
+  });
+}
+
+function nasaTileUrl(layerKey, layer, zoom, x, y) {
+  return `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/${layerKey}/default/${layer.date}/${layer.matrixSet}/${zoom}/${y}/${x}.${layer.format}`;
+}
+
+function lonToTileX(lon, zoom) {
+  return ((lon + 180) / 360) * 2 ** zoom;
+}
+
+function latToTileY(lat, zoom) {
+  const latRad = lat * Math.PI / 180;
+  return (1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2 * 2 ** zoom;
+}
+
+function tileXToLon(x, zoom) {
+  return x / 2 ** zoom * 360 - 180;
+}
+
+function tileYToLat(y, zoom) {
+  const n = Math.PI - 2 * Math.PI * y / 2 ** zoom;
+  return 180 / Math.PI * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n)));
+}
+
+function setEarthViewFromRegion(regionKey) {
+  const regionView = REGION_TILE_VIEWS[regionKey] || REGION_TILE_VIEWS.gulf_coast;
+  state.earthView = { ...regionView };
+}
+
+function clampEarthView() {
+  state.earthView.lat = Math.max(-84, Math.min(84, state.earthView.lat));
+  state.earthView.lon = ((state.earthView.lon + 180) % 360 + 360) % 360 - 180;
+  state.earthView.zoom = Math.max(3, Math.min(9, state.earthView.zoom));
+}
+
+function getEarthTileAtPoint(clientX, clientY) {
+  const rect = mapWrap.getBoundingClientRect();
+  const view = state.earthView || REGION_TILE_VIEWS[state.region] || REGION_TILE_VIEWS.gulf_coast;
+  const zoom = view.zoom;
+  const scale = 2 ** zoom;
+  const centerX = lonToTileX(view.lon, zoom);
+  const centerY = latToTileY(view.lat, zoom);
+  const tileX = Math.floor(centerX + (clientX - rect.left - rect.width / 2) / 256);
+  const tileY = Math.floor(centerY + (clientY - rect.top - rect.height / 2) / 256);
+
+  return {
+    z: zoom,
+    x: ((tileX % scale) + scale) % scale,
+    y: Math.max(0, Math.min(scale - 1, tileY)),
+  };
+}
+
+function selectEarthTile(clientX, clientY) {
+  if (state.viewMode !== "earth") return;
+  state.selectedTile = getEarthTileAtPoint(clientX, clientY);
+  updateEarthTiles();
+}
+
+function selectCenterEarthTile() {
+  const rect = mapWrap.getBoundingClientRect();
+  selectEarthTile(rect.left + rect.width / 2, rect.top + rect.height / 2);
+}
+
+function panEarthByPixels(dx, dy) {
+  const zoom = state.earthView.zoom;
+  const nextX = earthPointer.centerX - dx / 256;
+  const nextY = earthPointer.centerY - dy / 256;
+  state.earthView.lon = tileXToLon(nextX, zoom);
+  state.earthView.lat = tileYToLat(nextY, zoom);
+  clampEarthView();
+  scheduleEarthTiles();
+}
+
+function zoomEarth(delta, anchorClientX = null, anchorClientY = null) {
+  if (state.viewMode !== "earth") {
+    zoom(delta > 0 ? 1.25 : 0.8);
+    return;
+  }
+  const oldZoom = state.earthView.zoom;
+  const nextZoom = Math.max(3, Math.min(9, oldZoom + delta));
+  if (nextZoom === oldZoom) return;
+
+  const rect = mapWrap.getBoundingClientRect();
+  const anchorX = anchorClientX ?? rect.left + rect.width / 2;
+  const anchorY = anchorClientY ?? rect.top + rect.height / 2;
+  const oldCenterX = lonToTileX(state.earthView.lon, oldZoom);
+  const oldCenterY = latToTileY(state.earthView.lat, oldZoom);
+  const anchorTileX = oldCenterX + (anchorX - rect.left - rect.width / 2) / 256;
+  const anchorTileY = oldCenterY + (anchorY - rect.top - rect.height / 2) / 256;
+  const ratio = 2 ** (nextZoom - oldZoom);
+  const nextCenterX = anchorTileX * ratio - (anchorX - rect.left - rect.width / 2) / 256;
+  const nextCenterY = anchorTileY * ratio - (anchorY - rect.top - rect.height / 2) / 256;
+
+  state.earthView.zoom = nextZoom;
+  state.earthView.lon = tileXToLon(nextCenterX, nextZoom);
+  state.earthView.lat = tileYToLat(nextCenterY, nextZoom);
+  state.selectedTile = null;
+  clampEarthView();
+  redrawMap();
+}
+
+function resetEarthView() {
+  setEarthViewFromRegion(state.region);
+  state.selectedTile = null;
+  redrawMap();
+}
+
+function updateLegend() {
+  const legendTitle = document.getElementById("legendTitle");
+  const legendBar = document.querySelector(".legend-bar");
+  const labels = [
+    document.getElementById("legendMin"),
+    document.getElementById("legendMidLow"),
+    document.getElementById("legendMidHigh"),
+    document.getElementById("legendMax"),
+  ];
+  const config = {
+    flood:     ["FLOOD DEPTH",       ["Dry", "Shallow", "Deep", "Extreme"]],
+    heat:      ["SST HEAT ANOMALY",  ["Cool", "+0.5C", "+1.5C", "+3C"]],
+    elevation: ["ELEVATION RISK",    ["Below SL", "Low", "Mid", "Safe"]],
+    equity:    ["EQUITY EXPOSURE",   ["Low", "Raised", "High", "Critical"]],
+  }[state.parameter];
+
+  legendTitle.textContent = config[0];
+  legendBar.className = `legend-bar ${state.parameter}`;
+  labels.forEach((label, i) => { label.textContent = config[1][i]; });
+}
+
 // ── FULL MAP REDRAW ───────────────────────────────────────────────────────────
 // Called after region change or layer toggle — redraws everything from scratch
 function redrawMap() {
   const ctx = canvas.getContext("2d");
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+  updateEarthTiles();
+  updateLegend();
 
-  if (state.layers.elevation) {
+  if (state.viewMode === "analysis" && state.layers.elevation) {
     drawBaseTerrain(state.region);
-  } else {
+  } else if (state.viewMode === "analysis") {
     ctx.fillStyle = "#030810";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
 
-  drawOcean(Date.now());
+  if (state.viewMode === "analysis") drawOcean(Date.now());
 
   if (state.layers.sst)            drawSSTAnomaly(state.region);
+  drawParameterOverlay(state.region, state.parameter, state.viewMode === "earth" ? 1 : 0.8);
   if (state.layers.fema)           drawFEMAZones(state.region);
   if (state.layers.population)     drawPopulationDensity(state.region);
 
@@ -122,6 +358,8 @@ async function loadRegion(regionKey) {
   state.category = 1;
   state.slrYear  = 2024;
   state.surgeOverride = null;
+  state.selectedTile = null;
+  setEarthViewFromRegion(regionKey);
 
   // Update active chip
   document.querySelectorAll(".region-chip").forEach(c => {
@@ -167,8 +405,12 @@ async function loadRegion(regionKey) {
   resizeCanvas();
   const ctx = canvas.getContext("2d");
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  drawBaseTerrain(regionKey);
-  drawOcean(Date.now());
+  updateEarthTiles();
+  updateLegend();
+  if (state.viewMode === "analysis") {
+    drawBaseTerrain(regionKey);
+    drawOcean(Date.now());
+  }
 
   loadingText.textContent = "Loading tidal data…";
 
@@ -185,6 +427,7 @@ async function loadRegion(regionKey) {
 
   // Apply layers
   if (state.layers.sst)            drawSSTAnomaly(regionKey);
+  drawParameterOverlay(regionKey, state.parameter, state.viewMode === "earth" ? 1 : 0.8);
   if (state.layers.fema)           drawFEMAZones(regionKey);
   if (state.layers.population)     drawPopulationDensity(regionKey);
 
@@ -296,7 +539,15 @@ export function updateMetricCards() {
 function updateBottomPanel(surgeData, tidesData) {
   // Elevation histogram
   const totalFt = surgeData?.total_surge_ft || 4;
-  drawElevHistogram(state.region, totalFt);
+  document.getElementById("histPanelLabel").textContent =
+    state.graphMode === "parameter"
+      ? `${state.parameter.toUpperCase()} PARAMETER DISTRIBUTION`
+      : "COASTAL ELEVATION DISTRIBUTION";
+  if (state.graphMode === "parameter") {
+    drawParameterHistogram(state.region, state.parameter, totalFt);
+  } else {
+    drawElevHistogram(state.region, totalFt);
+  }
 
   // Storm surge timeline
   const peaks = tidesData?.storm_peaks || FALLBACK_TIDES[state.region]?.storm_peaks || [];
@@ -336,6 +587,38 @@ function showEquityModal(meta) {
 
 // ── EVENT LISTENERS ───────────────────────────────────────────────────────────
 function bindEvents() {
+
+  // View mode
+  document.getElementById("viewModeBtns").addEventListener("click", e => {
+    const btn = e.target.closest(".segment-btn");
+    if (!btn) return;
+    state.viewMode = btn.dataset.viewMode;
+    document.querySelectorAll(".segment-btn").forEach(b => {
+      b.classList.toggle("active", b === btn);
+    });
+    redrawMap();
+  });
+
+  document.getElementById("earthTileSelect").addEventListener("change", e => {
+    state.earthTile = e.target.value;
+    updateEarthTiles();
+  });
+
+  document.getElementById("parameterSelect").addEventListener("change", e => {
+    state.parameter = e.target.value;
+    redrawMap();
+    updateBottomPanel(state.surgeData, state.tidesData);
+  });
+
+  document.getElementById("graphModeBtns").addEventListener("click", e => {
+    const btn = e.target.closest(".mini-toggle-btn");
+    if (!btn) return;
+    state.graphMode = btn.dataset.graphMode;
+    document.querySelectorAll(".mini-toggle-btn").forEach(b => {
+      b.classList.toggle("active", b === btn);
+    });
+    updateBottomPanel(state.surgeData, state.tidesData);
+  });
 
   // Region chips
   document.getElementById("regionChips").addEventListener("click", e => {
@@ -390,9 +673,59 @@ function bindEvents() {
   });
 
   // Zoom controls
-  document.getElementById("zoomIn").addEventListener("click",    () => zoom(1.25));
-  document.getElementById("zoomOut").addEventListener("click",   () => zoom(0.8));
-  document.getElementById("zoomReset").addEventListener("click", () => { resetZoom(); redrawMap(); });
+  document.getElementById("zoomIn").addEventListener("click", () => zoomEarth(1));
+  document.getElementById("zoomOut").addEventListener("click", () => zoomEarth(-1));
+  document.getElementById("zoomReset").addEventListener("click", () => {
+    if (state.viewMode === "earth") {
+      resetEarthView();
+    } else {
+      resetZoom();
+      redrawMap();
+    }
+  });
+
+  canvas.addEventListener("click", e => {
+    if (earthPointer.moved) return;
+    selectEarthTile(e.clientX, e.clientY);
+  });
+  document.getElementById("selectCenterTile").addEventListener("click", selectCenterEarthTile);
+
+  canvas.addEventListener("pointerdown", e => {
+    if (state.viewMode !== "earth") return;
+    canvas.setPointerCapture(e.pointerId);
+    earthPointer.active = true;
+    earthPointer.moved = false;
+    earthPointer.x = e.clientX;
+    earthPointer.y = e.clientY;
+    earthPointer.startX = e.clientX;
+    earthPointer.startY = e.clientY;
+    earthPointer.centerX = lonToTileX(state.earthView.lon, state.earthView.zoom);
+    earthPointer.centerY = latToTileY(state.earthView.lat, state.earthView.zoom);
+    mapWrap.classList.add("dragging");
+  });
+
+  canvas.addEventListener("pointermove", e => {
+    if (!earthPointer.active || state.viewMode !== "earth") return;
+    const dx = e.clientX - earthPointer.startX;
+    const dy = e.clientY - earthPointer.startY;
+    if (Math.abs(dx) + Math.abs(dy) > 5) earthPointer.moved = true;
+    panEarthByPixels(dx, dy);
+  });
+
+  function endEarthDrag(e) {
+    if (!earthPointer.active) return;
+    earthPointer.active = false;
+    mapWrap.classList.remove("dragging");
+    try { canvas.releasePointerCapture(e.pointerId); } catch {}
+    setTimeout(() => { earthPointer.moved = false; }, 0);
+  }
+  canvas.addEventListener("pointerup", endEarthDrag);
+  canvas.addEventListener("pointercancel", endEarthDrag);
+  canvas.addEventListener("wheel", e => {
+    if (state.viewMode !== "earth") return;
+    e.preventDefault();
+    zoomEarth(e.deltaY < 0 ? 1 : -1, e.clientX, e.clientY);
+  }, { passive: false });
 
   // CAT5 banner dismiss
   document.getElementById("cat5Dismiss").addEventListener("click", hideCat5Banner);
@@ -446,8 +779,7 @@ function bindEvents() {
 function startOceanLoop() {
   function loop(ts) {
     // Only redraw ocean strip — cheap operation
-    const ctx = canvas.getContext("2d");
-    drawOcean(ts);
+    if (state.viewMode === "analysis") drawOcean(ts);
     requestAnimationFrame(loop);
   }
   // Start after initial draw settles

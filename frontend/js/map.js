@@ -142,6 +142,71 @@ export function drawSSTAnomaly(regionKey) {
   ctx.restore();
 }
 
+// ── DRAW PARAMETER COLOR OVERLAY ──────────────────────────────────────────────
+export function drawParameterOverlay(regionKey, parameter, intensity = 1) {
+  const W = canvas.width, H = canvas.height;
+  if (!W || !H || intensity <= 0) return;
+
+  if (parameter === "flood") return;
+
+  const seed = regionKey.split("").reduce((a,c) => a + c.charCodeAt(0) * 17, 0);
+  const rng = seededRng(seed);
+  ctx.save();
+
+  if (parameter === "heat") {
+    ctx.globalAlpha = 0.34 * intensity;
+    const oceanWidth = W * 0.34;
+    for (let b = 0; b < 7; b++) {
+      const bx = rng() * oceanWidth;
+      const by = rng() * H;
+      const r = 70 + rng() * 150;
+      const g = ctx.createRadialGradient(bx, by, 0, bx, by, r);
+      g.addColorStop(0, "rgba(255,23,68,0.95)");
+      g.addColorStop(0.32, "rgba(255,109,0,0.72)");
+      g.addColorStop(0.62, "rgba(255,214,0,0.38)");
+      g.addColorStop(1, "rgba(0,229,255,0)");
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(bx, by, r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  if (parameter === "elevation") {
+    const grad = ctx.createLinearGradient(0, 0, W, 0);
+    grad.addColorStop(0, "rgba(255,23,68,0.42)");
+    grad.addColorStop(0.18, "rgba(255,109,0,0.28)");
+    grad.addColorStop(0.36, "rgba(255,214,0,0.18)");
+    grad.addColorStop(0.62, "rgba(105,240,174,0.10)");
+    grad.addColorStop(1, "rgba(0,229,255,0.03)");
+    ctx.globalAlpha = intensity;
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  if (parameter === "equity") {
+    ctx.globalAlpha = 0.26 * intensity;
+    const tractCount = 18;
+    for (let i = 0; i < tractCount; i++) {
+      const x = W * (0.04 + rng() * 0.52);
+      const y = H * (rng() * 0.92);
+      const w = W * (0.08 + rng() * 0.12);
+      const h = H * (0.08 + rng() * 0.15);
+      const exposure = 1 - x / (W * 0.66);
+      ctx.fillStyle = exposure > 0.72
+        ? "rgba(255,23,68,0.72)"
+        : exposure > 0.5
+          ? "rgba(255,109,0,0.58)"
+          : "rgba(255,214,0,0.42)";
+      ctx.fillRect(x, y, w, h);
+      ctx.strokeStyle = "rgba(255,255,255,0.14)";
+      ctx.strokeRect(x, y, w, h);
+    }
+  }
+
+  ctx.restore();
+}
+
 // ── DRAW INUNDATION ZONE ──────────────────────────────────────────────────────
 // animProgress: 0 → 1 (animated in main.js via requestAnimationFrame)
 export function drawInundationZone(regionKey, surgeNorm, animProgress) {
