@@ -27,12 +27,11 @@
   justify-content: center;
   gap: 12px;
   padding: 10px 20px;
-  font-family: var(--font-data);
+  font-family: var(--font-body);
   font-size: 12px;
   font-weight: 700;
-  letter-spacing: 1.5px;
-  animation: banner-pulse 2s ease-in-out infinite;
-  border-bottom: 2px solid rgba(0,0,0,0.3);
+  letter-spacing: 0.04em;
+  border-bottom: 2px solid var(--border);
 }
 
 @keyframes banner-pulse {
@@ -40,10 +39,7 @@
   50%       { background: #ffea00; }
 }
 
-.cat5-icon {
-  font-size: 18px;
-  animation: icon-shake 0.5s ease-in-out infinite alternate;
-}
+.cat5-icon { font-size: 18px; }
 
 @keyframes icon-shake {
   from { transform: rotate(-8deg); }
@@ -71,7 +67,7 @@
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(3,8,16,0.88);
+  background: rgba(31,29,24,0.36);
   z-index: 600;
   display: flex;
   align-items: center;
@@ -89,10 +85,10 @@
 
 .modal-box {
   background: var(--panel);
-  border: 1px solid var(--border-bright);
+  border: 2px solid var(--border-bright);
   max-width: 520px;
   width: 90%;
-  box-shadow: 0 0 60px rgba(0,229,255,0.08), 0 0 120px rgba(0,0,0,0.8);
+  box-shadow: 8px 8px 0 var(--border);
   animation: fadeUp 0.3s ease both;
 }
 
@@ -136,9 +132,9 @@
 /* Equity modal specifics */
 .modal-fei {
   font-family: var(--font-display);
-  font-size: 40px;
+  font-size: 36px;
+  font-weight: 700;
   color: var(--catastrophic);
-  text-shadow: 0 0 24px rgba(255,23,68,0.5);
   margin-bottom: 12px;
   line-height: 1;
 }
@@ -160,7 +156,7 @@
 }
 
 .modal-stat {
-  background: var(--void);
+  background: var(--deep);
   border: 1px solid var(--border);
   padding: 12px;
   text-align: center;
@@ -169,6 +165,7 @@
 .modal-stat-val {
   font-family: var(--font-display);
   font-size: 24px;
+  font-weight: 700;
   color: var(--caution);
   line-height: 1;
   margin-bottom: 4px;
@@ -187,7 +184,7 @@
 }
 
 .method-item {
-  background: var(--void);
+  background: var(--deep);
   border: 1px solid var(--border);
   padding: 12px;
 }
@@ -195,7 +192,7 @@
 .method-title {
   font-size: 9px;
   font-weight: 700;
-  letter-spacing: 2px;
+  letter-spacing: 0.04em;
   color: var(--safe);
   margin-bottom: 6px;
 }
@@ -214,7 +211,7 @@
 /* ── MAP TOOLTIP ─────────────────────────────────────────────────────────────── */
 .map-tooltip {
   position: absolute;
-  background: rgba(6,13,26,0.95);
+  background: rgba(255,250,240,0.96);
   border: 1px solid var(--border-bright);
   padding: 10px 12px;
   pointer-events: none;
@@ -222,7 +219,7 @@
   z-index: 20;
   backdrop-filter: blur(8px);
   min-width: 160px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+  box-shadow: 4px 4px 0 var(--border);
 }
 
 .map-tooltip.visible { display: block; }
@@ -235,13 +232,13 @@
 /* ── STORM TRACK NODE POPUP ──────────────────────────────────────────────────── */
 .track-popup {
   position: absolute;
-  background: rgba(6,13,26,0.96);
+  background: rgba(255,250,240,0.96);
   border: 1px solid var(--hurricane);
   padding: 0;
   display: none;
   z-index: 30;
   min-width: 180px;
-  box-shadow: 0 0 20px rgba(224,64,251,0.2);
+  box-shadow: 4px 4px 0 var(--border);
   animation: fadeUp 0.2s ease both;
 }
 
@@ -287,6 +284,7 @@
 .tp-stat-val {
   font-family: var(--font-display);
   font-size: 20px;
+  font-weight: 700;
   color: var(--hurricane);
   line-height: 1;
   margin-bottom: 3px;
@@ -300,7 +298,7 @@
   bottom: 16px;
   right: 16px;
   z-index: 12;
-  background: rgba(6,13,26,0.92);
+  background: rgba(255,250,240,0.94);
   border: 1px solid var(--border-bright);
   padding: 12px 14px;
   backdrop-filter: blur(10px);
@@ -366,7 +364,7 @@
 .map-loading {
   position: absolute;
   inset: 0;
-  background: rgba(3,8,16,0.85);
+  background: rgba(247,243,232,0.84);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -401,13 +399,13 @@
 /* ── GAUGE HOVER SPARKLINE POPUP ─────────────────────────────────────────────── */
 .gauge-popup {
   position: absolute;
-  background: rgba(6,13,26,0.96);
+  background: rgba(255,250,240,0.96);
   border: 1px solid var(--safe);
   padding: 10px 12px;
   z-index: 25;
   display: none;
   min-width: 200px;
-  box-shadow: 0 0 16px rgba(0,229,255,0.15);
+  box-shadow: 4px 4px 0 var(--border);
   pointer-events: none;
 }
 

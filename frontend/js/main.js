@@ -55,6 +55,7 @@ let earthRenderFrame = null;
 let earthPointer = {
   active: false,
   moved: false,
+  suppressClickUntil: 0,
   x: 0,
   y: 0,
   startX: 0,
@@ -685,7 +686,7 @@ function bindEvents() {
   });
 
   canvas.addEventListener("click", e => {
-    if (earthPointer.moved) return;
+    if (earthPointer.moved || Date.now() < earthPointer.suppressClickUntil) return;
     selectEarthTile(e.clientX, e.clientY);
   });
   document.getElementById("selectCenterTile").addEventListener("click", selectCenterEarthTile);
@@ -714,6 +715,7 @@ function bindEvents() {
 
   function endEarthDrag(e) {
     if (!earthPointer.active) return;
+    if (earthPointer.moved) earthPointer.suppressClickUntil = Date.now() + 250;
     earthPointer.active = false;
     mapWrap.classList.remove("dragging");
     try { canvas.releasePointerCapture(e.pointerId); } catch {}
