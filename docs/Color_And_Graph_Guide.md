@@ -96,10 +96,12 @@ that historical event exceeded the currently selected surge plus SLR scenario.
 2. Drag the Earth view to explore the NASA tile matrix.
 3. Use the map zoom buttons or mouse wheel to move between tile zoom levels.
 4. Choose the NASA tile source that best reveals the coast.
-5. Click a tile after navigating, or press **Select center tile**, to lock a
-   NASA tile selection. The readout reports the selected `z / x,y` tile matrix
-   coordinate for traceability.
-6. Select a parameter color layer: flood, heat, elevation, or equity.
-7. Use the storm category and SLR controls to change the flood threshold.
-8. Switch the graph mode to **Parameter** when you want the bottom chart to
+5. Click **Draw AOI**, drag a rectangle over the coast, and review the
+   intersecting NASA tile count.
+6. Click **Confirm** to lock the analysis footprint, or **Clear** to restart.
+7. For a single-tile workflow, click a tile after navigating or press **Select
+   center tile**. The readout reports the selected `z / x,y` tile coordinate.
+8. Select a parameter color layer: flood, heat, elevation, or equity.
+9. Use the storm category and SLR controls to change the flood threshold.
+10. Switch the graph mode to **Parameter** when you want the bottom chart to
    explain the selected overlay rather than elevation alone.

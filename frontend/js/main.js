@@ -34,6 +34,12 @@ export const state = {
   parameter:        "flood",
   graphMode:        "elevation",
   selectedTile:     null,
+  aoi: {
+    drawing:        false,
+    draftBounds:    null,
+    confirmedBounds:null,
+    tiles:          [],
+  },
   earthView:        { lat: 29.5, lon: -90.5, zoom: 7 },
   layers: {
     elevation:      true,
@@ -55,6 +61,10 @@ const leafletEl    = document.getElementById("leafletMap");
 let leafletMap = null;
 let leafletLayer = null;
 let selectedTileRect = null;
+let aoiDraftRect = null;
+let aoiConfirmedRect = null;
+let aoiTileRects = [];
+let aoiDragStart = null;
 
 const NASA_TILE_LAYERS = {
   MODIS_Terra_CorrectedReflectance_TrueColor: {
@@ -156,11 +166,48 @@ function initLeafletEarthMap() {
       lon: center.lng,
       zoom: leafletMap.getZoom(),
     };
+    const bounds = state.aoi.confirmedBounds || state.aoi.draftBounds;
+    if (bounds) renderAoiTiles(bounds);
     syncEarthReadout();
   });
 
   leafletMap.on("click", e => {
+    if (state.aoi.drawing) return;
     selectEarthTileFromLatLng(e.latlng);
+  });
+
+  leafletMap.on("mousedown", e => {
+    if (!state.aoi.drawing) return;
+    aoiDragStart = e.latlng;
+    clearAoiDraft();
+    aoiDraftRect = L.rectangle([aoiDragStart, aoiDragStart], {
+      color: "#1f1d18",
+      weight: 2,
+      fillColor: "#e3b505",
+      fillOpacity: 0.12,
+      interactive: false,
+      className: "leaflet-aoi-rect",
+    }).addTo(leafletMap);
+  });
+
+  leafletMap.on("mousemove", e => {
+    if (!state.aoi.drawing || !aoiDragStart || !aoiDraftRect) return;
+    aoiDraftRect.setBounds(L.latLngBounds(aoiDragStart, e.latlng));
+  });
+
+  leafletMap.on("mouseup", e => {
+    if (!state.aoi.drawing || !aoiDragStart || !aoiDraftRect) return;
+    const bounds = L.latLngBounds(aoiDragStart, e.latlng);
+    aoiDragStart = null;
+    if (!isUsableAoi(bounds)) {
+      clearAoiDraft();
+      updateAoiReadout("AOI too small. Drag a larger box.");
+      return;
+    }
+    state.aoi.draftBounds = bounds;
+    aoiDraftRect.setBounds(bounds);
+    renderAoiTiles(bounds);
+    updateAoiControls();
   });
 }
 
@@ -284,8 +331,162 @@ function zoomEarth(delta) {
 function resetEarthView() {
   setEarthViewFromRegion(state.region);
   state.selectedTile = null;
+  clearAoiSelection();
   if (leafletMap) leafletMap.setView([state.earthView.lat, state.earthView.lon], state.earthView.zoom, { animate: true });
   redrawMap();
+}
+
+function startAoiDraw() {
+  if (!leafletMap || state.viewMode !== "earth") return;
+  state.aoi.drawing = true;
+  state.aoi.draftBounds = null;
+  state.aoi.confirmedBounds = null;
+  state.aoi.tiles = [];
+  selectedTileRect && leafletMap.removeLayer(selectedTileRect);
+  selectedTileRect = null;
+  state.selectedTile = null;
+  clearAoiDraft();
+  clearAoiConfirmed();
+  clearAoiTileRects();
+  leafletMap.dragging.disable();
+  leafletMap.doubleClickZoom.disable();
+  updateAoiReadout("Drag on the map to draw an AOI.");
+  updateAoiControls();
+}
+
+function stopAoiDraw() {
+  state.aoi.drawing = false;
+  aoiDragStart = null;
+  if (leafletMap) {
+    leafletMap.dragging.enable();
+    leafletMap.doubleClickZoom.enable();
+  }
+  updateAoiControls();
+}
+
+function confirmAoiSelection() {
+  if (!state.aoi.draftBounds) return;
+  stopAoiDraw();
+  state.aoi.confirmedBounds = state.aoi.draftBounds;
+  state.aoi.draftBounds = null;
+  clearAoiDraft();
+  clearAoiConfirmed();
+  aoiConfirmedRect = L.rectangle(state.aoi.confirmedBounds, {
+    color: "#006d77",
+    weight: 3,
+    fillColor: "#006d77",
+    fillOpacity: 0.08,
+    interactive: false,
+    className: "leaflet-aoi-rect",
+  }).addTo(leafletMap);
+  renderAoiTiles(state.aoi.confirmedBounds);
+  updateAoiControls();
+}
+
+function clearAoiSelection() {
+  stopAoiDraw();
+  state.aoi.draftBounds = null;
+  state.aoi.confirmedBounds = null;
+  state.aoi.tiles = [];
+  clearAoiDraft();
+  clearAoiConfirmed();
+  clearAoiTileRects();
+  updateAoiReadout("No AOI selected");
+  updateAoiControls();
+}
+
+function clearAoiDraft() {
+  if (aoiDraftRect && leafletMap) leafletMap.removeLayer(aoiDraftRect);
+  aoiDraftRect = null;
+}
+
+function clearAoiConfirmed() {
+  if (aoiConfirmedRect && leafletMap) leafletMap.removeLayer(aoiConfirmedRect);
+  aoiConfirmedRect = null;
+}
+
+function clearAoiTileRects() {
+  aoiTileRects.forEach(rect => leafletMap?.removeLayer(rect));
+  aoiTileRects = [];
+}
+
+function isUsableAoi(bounds) {
+  const sw = bounds.getSouthWest();
+  const ne = bounds.getNorthEast();
+  return Math.abs(ne.lat - sw.lat) > 0.005 && Math.abs(ne.lng - sw.lng) > 0.005;
+}
+
+function tilesForBounds(bounds) {
+  const layer = NASA_TILE_LAYERS[state.earthTile] || NASA_TILE_LAYERS.MODIS_Terra_CorrectedReflectance_TrueColor;
+  const zoom = Math.min(leafletMap?.getZoom() || state.earthView.zoom, layer.maxZoom);
+  const scale = 2 ** zoom;
+  const west = bounds.getWest();
+  const east = bounds.getEast();
+  const north = bounds.getNorth();
+  const south = bounds.getSouth();
+  const minX = Math.floor(lonToTileX(Math.min(west, east), zoom));
+  const maxX = Math.floor(lonToTileX(Math.max(west, east), zoom));
+  const minY = Math.floor(latToTileY(Math.max(north, south), zoom));
+  const maxY = Math.floor(latToTileY(Math.min(north, south), zoom));
+  const tiles = [];
+
+  for (let y = Math.max(0, minY); y <= Math.min(scale - 1, maxY); y++) {
+    for (let x = minX; x <= maxX; x++) {
+      tiles.push({
+        z: zoom,
+        x: ((x % scale) + scale) % scale,
+        y,
+      });
+    }
+  }
+  return tiles;
+}
+
+function renderAoiTiles(bounds) {
+  clearAoiTileRects();
+  state.aoi.tiles = tilesForBounds(bounds);
+  const maxRendered = 80;
+  state.aoi.tiles.slice(0, maxRendered).forEach(tile => {
+    const rect = L.rectangle(tileBounds(tile), {
+      color: "#e3b505",
+      weight: 1,
+      fill: false,
+      interactive: false,
+      className: "leaflet-aoi-tile",
+    }).addTo(leafletMap);
+    aoiTileRects.push(rect);
+  });
+  updateAoiReadout();
+}
+
+function updateAoiReadout(message = null) {
+  const el = document.getElementById("aoiReadout");
+  if (!el) return;
+  if (message) {
+    el.textContent = message;
+    return;
+  }
+  const bounds = state.aoi.confirmedBounds || state.aoi.draftBounds;
+  if (!bounds) {
+    el.textContent = "No AOI selected";
+    return;
+  }
+  const sw = bounds.getSouthWest();
+  const ne = bounds.getNorthEast();
+  const status = state.aoi.confirmedBounds ? "Confirmed AOI" : "Draft AOI";
+  const tileText = state.aoi.tiles.length === 1 ? "1 tile" : `${state.aoi.tiles.length} tiles`;
+  el.textContent = `${status}: ${tileText} at z${state.aoi.tiles[0]?.z ?? "-"} | ${sw.lat.toFixed(2)}, ${sw.lng.toFixed(2)} to ${ne.lat.toFixed(2)}, ${ne.lng.toFixed(2)}`;
+}
+
+function updateAoiControls() {
+  const drawBtn = document.getElementById("drawAoiBtn");
+  const confirmBtn = document.getElementById("confirmAoiBtn");
+  const clearBtn = document.getElementById("clearAoiBtn");
+  if (!drawBtn || !confirmBtn || !clearBtn) return;
+  drawBtn.classList.toggle("active", state.aoi.drawing);
+  drawBtn.textContent = state.aoi.drawing ? "Drawing..." : "Draw AOI";
+  confirmBtn.disabled = !state.aoi.draftBounds;
+  clearBtn.disabled = !state.aoi.draftBounds && !state.aoi.confirmedBounds && !state.aoi.drawing;
 }
 
 function updateLegend() {
@@ -366,6 +567,7 @@ async function loadRegion(regionKey) {
   state.slrYear  = 2024;
   state.surgeOverride = null;
   state.selectedTile = null;
+  clearAoiSelection();
   setEarthViewFromRegion(regionKey);
 
   // Update active chip
@@ -609,8 +811,20 @@ function bindEvents() {
   document.getElementById("earthTileSelect").addEventListener("change", e => {
     state.earthTile = e.target.value;
     state.selectedTile = null;
+    if (state.aoi.confirmedBounds || state.aoi.draftBounds) {
+      const bounds = state.aoi.confirmedBounds || state.aoi.draftBounds;
+      updateEarthTiles();
+      renderAoiTiles(bounds);
+      return;
+    }
     updateEarthTiles();
   });
+
+  document.getElementById("drawAoiBtn").addEventListener("click", () => {
+    state.aoi.drawing ? stopAoiDraw() : startAoiDraw();
+  });
+  document.getElementById("confirmAoiBtn").addEventListener("click", confirmAoiSelection);
+  document.getElementById("clearAoiBtn").addEventListener("click", clearAoiSelection);
 
   document.getElementById("parameterSelect").addEventListener("change", e => {
     state.parameter = e.target.value;

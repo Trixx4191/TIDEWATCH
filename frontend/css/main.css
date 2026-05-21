@@ -171,6 +171,54 @@ body::before {
 }
 .tw-select:focus { border-color: var(--border); box-shadow: 3px 3px 0 var(--border); }
 
+.aoi-panel {
+  margin-top: 10px;
+  padding: 10px;
+  background: var(--deep);
+  border: 1px solid var(--border);
+}
+.aoi-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+.aoi-btn {
+  min-width: 0;
+  background: var(--text);
+  border: 1px solid var(--border);
+  color: var(--deep);
+  font-family: var(--font-body);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 7px 6px;
+  cursor: pointer;
+}
+.aoi-btn.ghost {
+  background: transparent;
+  color: var(--text);
+}
+.aoi-btn:hover:not(:disabled) {
+  background: #efe5d2;
+  color: var(--text);
+  box-shadow: 2px 2px 0 var(--border);
+}
+.aoi-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
+}
+.aoi-btn.active {
+  background: var(--caution);
+  color: var(--text);
+  box-shadow: 2px 2px 0 var(--border);
+}
+.aoi-readout {
+  font-family: var(--font-data);
+  font-size: 9px;
+  line-height: 1.45;
+  color: var(--text-dim);
+}
+
 .scenario-btns { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
 .scenario-btn { display: flex; justify-content: space-between; align-items: center; background: var(--deep); border: 1px solid var(--border); color: var(--text-dim); font-family: var(--font-body); font-size: 12px; padding: 8px 12px; cursor: pointer; transition: all 0.15s; }
 .scenario-cat { font-weight: 700; letter-spacing: 1px; }
@@ -284,6 +332,12 @@ body::before {
 .leaflet-tile-selected {
   outline: 2px solid var(--caution);
   outline-offset: -2px;
+}
+.leaflet-aoi-rect {
+  filter: drop-shadow(3px 3px 0 rgba(31,29,24,0.6));
+}
+.leaflet-aoi-tile {
+  outline: 1px solid rgba(227,181,5,0.55);
 }
 .earth-tiles {
   position: absolute;
