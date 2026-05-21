@@ -12,6 +12,9 @@ Use it as the legend reference for screenshots, reports, and stakeholder review.
 | Earth | NASA GIBS / Earthdata raster tiles under TIDEWATCH overlays | Seeing flood and heat layers on a recognizable Earth surface |
 | Analysis | Synthetic DEM-style terrain derived from the selected region profile | Reading elevation, flood reach, and model layers without satellite texture |
 
+The Earth mode uses Leaflet for map navigation, tile loading, zoom controls, and
+click selection. TIDEWATCH overlays render above the Leaflet base map.
+
 ## NASA Earthdata Tiles
 
 | Tile | Meaning |

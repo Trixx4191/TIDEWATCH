@@ -51,18 +51,10 @@ const mapWrap      = document.getElementById("mapWrap");
 const mapLoading   = document.getElementById("mapLoading");
 const loadingText  = document.getElementById("loadingText");
 const earthTiles   = document.getElementById("earthTiles");
-let earthRenderFrame = null;
-let earthPointer = {
-  active: false,
-  moved: false,
-  suppressClickUntil: 0,
-  x: 0,
-  y: 0,
-  startX: 0,
-  startY: 0,
-  centerX: 0,
-  centerY: 0,
-};
+const leafletEl    = document.getElementById("leafletMap");
+let leafletMap = null;
+let leafletLayer = null;
+let selectedTileRect = null;
 
 const NASA_TILE_LAYERS = {
   MODIS_Terra_CorrectedReflectance_TrueColor: {
@@ -70,18 +62,21 @@ const NASA_TILE_LAYERS = {
     format: "jpg",
     matrixSet: "GoogleMapsCompatible_Level9",
     date: "2024-09-01",
+    maxZoom: 9,
   },
   VIIRS_SNPP_CorrectedReflectance_TrueColor: {
     label: "VIIRS SNPP True Color",
     format: "jpg",
     matrixSet: "GoogleMapsCompatible_Level9",
     date: "2024-09-01",
+    maxZoom: 9,
   },
   BlueMarble_ShadedRelief_Bathymetry: {
     label: "Blue Marble Relief",
     format: "jpeg",
     matrixSet: "GoogleMapsCompatible_Level8",
     date: "default",
+    maxZoom: 8,
   },
 };
 
@@ -120,65 +115,77 @@ function hideLoading() {
 
 // ── NASA EARTHDATA / GIBS TILE VIEW ───────────────────────────────────────────
 function updateEarthTiles() {
-  if (!earthTiles) return;
-  earthTiles.innerHTML = "";
-  earthTiles.classList.toggle("hidden", state.viewMode !== "earth");
+  if (earthTiles) earthTiles.classList.add("hidden");
+  mapWrap.classList.toggle("earth-mode", state.viewMode === "earth");
+  mapWrap.classList.toggle("analysis-mode", state.viewMode !== "earth");
+  leafletEl?.classList.toggle("hidden", state.viewMode !== "earth");
   document.getElementById("tileReadout")?.classList.toggle("hidden", state.viewMode !== "earth");
   if (state.viewMode !== "earth") return;
 
   const view = state.earthView || REGION_TILE_VIEWS[state.region] || REGION_TILE_VIEWS.gulf_coast;
   const layer = NASA_TILE_LAYERS[state.earthTile] || NASA_TILE_LAYERS.MODIS_Terra_CorrectedReflectance_TrueColor;
-  const zoom = view.zoom;
-  const scale = 2 ** zoom;
-  const centerX = lonToTileX(view.lon, zoom);
-  const centerY = latToTileY(view.lat, zoom);
-  const cols = Math.ceil(mapWrap.clientWidth / 256) + 2;
-  const rows = Math.ceil(mapWrap.clientHeight / 256) + 2;
-  const startX = Math.floor(centerX - cols / 2);
-  const startY = Math.floor(centerY - rows / 2);
-  const offsetX = Math.round(mapWrap.clientWidth / 2 - (centerX - startX) * 256);
-  const offsetY = Math.round(mapWrap.clientHeight / 2 - (centerY - startY) * 256);
-
-  for (let row = 0; row < rows; row++) {
-    for (let col = 0; col < cols; col++) {
-      const x = ((startX + col) % scale + scale) % scale;
-      const y = Math.max(0, Math.min(scale - 1, startY + row));
-      const img = document.createElement("img");
-      img.className = "earth-tile";
-      img.alt = "";
-      img.loading = "lazy";
-      img.decoding = "async";
-      img.style.left = `${offsetX + col * 256}px`;
-      img.style.top = `${offsetY + row * 256}px`;
-      img.dataset.tileX = x;
-      img.dataset.tileY = y;
-      img.dataset.tileZ = zoom;
-      img.classList.toggle("selected",
-        state.selectedTile?.z === zoom &&
-        state.selectedTile?.x === x &&
-        state.selectedTile?.y === y);
-      img.src = nasaTileUrl(state.earthTile, layer, zoom, x, y);
-      earthTiles.appendChild(img);
+  initLeafletEarthMap();
+  setLeafletTileLayer();
+  if (leafletMap) {
+    const z = Math.min(view.zoom, layer.maxZoom);
+    const current = leafletMap.getCenter();
+    if (Math.abs(current.lat - view.lat) > 0.0001 || Math.abs(current.lng - view.lon) > 0.0001 || leafletMap.getZoom() !== z) {
+      leafletMap.setView([view.lat, view.lon], z, { animate: false });
     }
+    leafletMap.invalidateSize();
   }
-
-  document.getElementById("tileName").textContent = layer.label;
-  document.getElementById("tileCoords").textContent =
-    state.selectedTile
-      ? `selected z${state.selectedTile.z} / ${state.selectedTile.x},${state.selectedTile.y}`
-      : `center z${zoom} / ${Math.floor(centerX)},${Math.floor(centerY)} / ${view.lat.toFixed(2)}, ${view.lon.toFixed(2)}`;
+  renderSelectedTile();
+  syncEarthReadout();
 }
 
-function scheduleEarthTiles() {
-  if (earthRenderFrame) cancelAnimationFrame(earthRenderFrame);
-  earthRenderFrame = requestAnimationFrame(() => {
-    earthRenderFrame = null;
-    updateEarthTiles();
+function initLeafletEarthMap() {
+  if (leafletMap || !window.L || !leafletEl) return;
+  leafletMap = L.map(leafletEl, {
+    zoomControl: false,
+    attributionControl: true,
+    minZoom: 3,
+    maxZoom: 9,
+    worldCopyJump: true,
+    preferCanvas: true,
+  }).setView([state.earthView.lat, state.earthView.lon], state.earthView.zoom);
+
+  leafletMap.on("moveend zoomend", () => {
+    const center = leafletMap.getCenter();
+    state.earthView = {
+      lat: center.lat,
+      lon: center.lng,
+      zoom: leafletMap.getZoom(),
+    };
+    syncEarthReadout();
+  });
+
+  leafletMap.on("click", e => {
+    selectEarthTileFromLatLng(e.latlng);
   });
 }
 
-function nasaTileUrl(layerKey, layer, zoom, x, y) {
-  return `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/${layerKey}/default/${layer.date}/${layer.matrixSet}/${zoom}/${y}/${x}.${layer.format}`;
+function setLeafletTileLayer() {
+  if (!leafletMap) return;
+  const layer = NASA_TILE_LAYERS[state.earthTile] || NASA_TILE_LAYERS.MODIS_Terra_CorrectedReflectance_TrueColor;
+  if (leafletLayer?._tidewatchKey === state.earthTile) return;
+  if (leafletLayer) leafletMap.removeLayer(leafletLayer);
+
+  leafletLayer = L.tileLayer(nasaTileUrlTemplate(state.earthTile, layer), {
+    tileSize: 256,
+    minZoom: 3,
+    maxZoom: layer.maxZoom,
+    maxNativeZoom: layer.maxZoom,
+    noWrap: false,
+    crossOrigin: true,
+    attribution: "NASA GIBS / Earthdata",
+  });
+  leafletLayer._tidewatchKey = state.earthTile;
+  leafletLayer.addTo(leafletMap);
+  if (leafletMap.getZoom() > layer.maxZoom) leafletMap.setZoom(layer.maxZoom);
+}
+
+function nasaTileUrlTemplate(layerKey, layer) {
+  return `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/${layerKey}/default/${layer.date}/${layer.matrixSet}/{z}/{y}/{x}.${layer.format}`;
 }
 
 function lonToTileX(lon, zoom) {
@@ -204,21 +211,10 @@ function setEarthViewFromRegion(regionKey) {
   state.earthView = { ...regionView };
 }
 
-function clampEarthView() {
-  state.earthView.lat = Math.max(-84, Math.min(84, state.earthView.lat));
-  state.earthView.lon = ((state.earthView.lon + 180) % 360 + 360) % 360 - 180;
-  state.earthView.zoom = Math.max(3, Math.min(9, state.earthView.zoom));
-}
-
-function getEarthTileAtPoint(clientX, clientY) {
-  const rect = mapWrap.getBoundingClientRect();
-  const view = state.earthView || REGION_TILE_VIEWS[state.region] || REGION_TILE_VIEWS.gulf_coast;
-  const zoom = view.zoom;
+function getTileAtLatLng(latlng, zoom) {
   const scale = 2 ** zoom;
-  const centerX = lonToTileX(view.lon, zoom);
-  const centerY = latToTileY(view.lat, zoom);
-  const tileX = Math.floor(centerX + (clientX - rect.left - rect.width / 2) / 256);
-  const tileY = Math.floor(centerY + (clientY - rect.top - rect.height / 2) / 256);
+  const tileX = Math.floor(lonToTileX(latlng.lng, zoom));
+  const tileY = Math.floor(latToTileY(latlng.lat, zoom));
 
   return {
     z: zoom,
@@ -227,58 +223,68 @@ function getEarthTileAtPoint(clientX, clientY) {
   };
 }
 
-function selectEarthTile(clientX, clientY) {
+function selectEarthTileFromLatLng(latlng) {
   if (state.viewMode !== "earth") return;
-  state.selectedTile = getEarthTileAtPoint(clientX, clientY);
-  updateEarthTiles();
+  const layer = NASA_TILE_LAYERS[state.earthTile] || NASA_TILE_LAYERS.MODIS_Terra_CorrectedReflectance_TrueColor;
+  const zoom = Math.min(leafletMap?.getZoom() || state.earthView.zoom, layer.maxZoom);
+  state.selectedTile = getTileAtLatLng(latlng, zoom);
+  renderSelectedTile();
+  syncEarthReadout();
 }
 
 function selectCenterEarthTile() {
-  const rect = mapWrap.getBoundingClientRect();
-  selectEarthTile(rect.left + rect.width / 2, rect.top + rect.height / 2);
+  if (!leafletMap) return;
+  selectEarthTileFromLatLng(leafletMap.getCenter());
 }
 
-function panEarthByPixels(dx, dy) {
-  const zoom = state.earthView.zoom;
-  const nextX = earthPointer.centerX - dx / 256;
-  const nextY = earthPointer.centerY - dy / 256;
-  state.earthView.lon = tileXToLon(nextX, zoom);
-  state.earthView.lat = tileYToLat(nextY, zoom);
-  clampEarthView();
-  scheduleEarthTiles();
+function tileBounds(tile) {
+  const west = tileXToLon(tile.x, tile.z);
+  const east = tileXToLon(tile.x + 1, tile.z);
+  const north = tileYToLat(tile.y, tile.z);
+  const south = tileYToLat(tile.y + 1, tile.z);
+  return [[south, west], [north, east]];
 }
 
-function zoomEarth(delta, anchorClientX = null, anchorClientY = null) {
-  if (state.viewMode !== "earth") {
+function renderSelectedTile() {
+  if (!leafletMap) return;
+  if (selectedTileRect) {
+    leafletMap.removeLayer(selectedTileRect);
+    selectedTileRect = null;
+  }
+  if (!state.selectedTile) return;
+  selectedTileRect = L.rectangle(tileBounds(state.selectedTile), {
+    color: "#e3b505",
+    weight: 3,
+    fill: false,
+    interactive: false,
+    className: "leaflet-tile-selected",
+  }).addTo(leafletMap);
+}
+
+function syncEarthReadout() {
+  const layer = NASA_TILE_LAYERS[state.earthTile] || NASA_TILE_LAYERS.MODIS_Terra_CorrectedReflectance_TrueColor;
+  const center = leafletMap?.getCenter() || { lat: state.earthView.lat, lng: state.earthView.lon };
+  const zoom = leafletMap?.getZoom() || state.earthView.zoom;
+  const centerTile = getTileAtLatLng(center, Math.min(zoom, layer.maxZoom));
+  document.getElementById("tileName").textContent = layer.label;
+  document.getElementById("tileCoords").textContent =
+    state.selectedTile
+      ? `selected z${state.selectedTile.z} / ${state.selectedTile.x},${state.selectedTile.y}`
+      : `center z${centerTile.z} / ${centerTile.x},${centerTile.y} / ${center.lat.toFixed(2)}, ${center.lng.toFixed(2)}`;
+}
+
+function zoomEarth(delta) {
+  if (state.viewMode !== "earth" || !leafletMap) {
     zoom(delta > 0 ? 1.25 : 0.8);
     return;
   }
-  const oldZoom = state.earthView.zoom;
-  const nextZoom = Math.max(3, Math.min(9, oldZoom + delta));
-  if (nextZoom === oldZoom) return;
-
-  const rect = mapWrap.getBoundingClientRect();
-  const anchorX = anchorClientX ?? rect.left + rect.width / 2;
-  const anchorY = anchorClientY ?? rect.top + rect.height / 2;
-  const oldCenterX = lonToTileX(state.earthView.lon, oldZoom);
-  const oldCenterY = latToTileY(state.earthView.lat, oldZoom);
-  const anchorTileX = oldCenterX + (anchorX - rect.left - rect.width / 2) / 256;
-  const anchorTileY = oldCenterY + (anchorY - rect.top - rect.height / 2) / 256;
-  const ratio = 2 ** (nextZoom - oldZoom);
-  const nextCenterX = anchorTileX * ratio - (anchorX - rect.left - rect.width / 2) / 256;
-  const nextCenterY = anchorTileY * ratio - (anchorY - rect.top - rect.height / 2) / 256;
-
-  state.earthView.zoom = nextZoom;
-  state.earthView.lon = tileXToLon(nextCenterX, nextZoom);
-  state.earthView.lat = tileYToLat(nextCenterY, nextZoom);
-  state.selectedTile = null;
-  clampEarthView();
-  redrawMap();
+  delta > 0 ? leafletMap.zoomIn() : leafletMap.zoomOut();
 }
 
 function resetEarthView() {
   setEarthViewFromRegion(state.region);
   state.selectedTile = null;
+  if (leafletMap) leafletMap.setView([state.earthView.lat, state.earthView.lon], state.earthView.zoom, { animate: true });
   redrawMap();
 }
 
@@ -602,6 +608,7 @@ function bindEvents() {
 
   document.getElementById("earthTileSelect").addEventListener("change", e => {
     state.earthTile = e.target.value;
+    state.selectedTile = null;
     updateEarthTiles();
   });
 
@@ -684,50 +691,7 @@ function bindEvents() {
       redrawMap();
     }
   });
-
-  canvas.addEventListener("click", e => {
-    if (earthPointer.moved || Date.now() < earthPointer.suppressClickUntil) return;
-    selectEarthTile(e.clientX, e.clientY);
-  });
   document.getElementById("selectCenterTile").addEventListener("click", selectCenterEarthTile);
-
-  canvas.addEventListener("pointerdown", e => {
-    if (state.viewMode !== "earth") return;
-    canvas.setPointerCapture(e.pointerId);
-    earthPointer.active = true;
-    earthPointer.moved = false;
-    earthPointer.x = e.clientX;
-    earthPointer.y = e.clientY;
-    earthPointer.startX = e.clientX;
-    earthPointer.startY = e.clientY;
-    earthPointer.centerX = lonToTileX(state.earthView.lon, state.earthView.zoom);
-    earthPointer.centerY = latToTileY(state.earthView.lat, state.earthView.zoom);
-    mapWrap.classList.add("dragging");
-  });
-
-  canvas.addEventListener("pointermove", e => {
-    if (!earthPointer.active || state.viewMode !== "earth") return;
-    const dx = e.clientX - earthPointer.startX;
-    const dy = e.clientY - earthPointer.startY;
-    if (Math.abs(dx) + Math.abs(dy) > 5) earthPointer.moved = true;
-    panEarthByPixels(dx, dy);
-  });
-
-  function endEarthDrag(e) {
-    if (!earthPointer.active) return;
-    if (earthPointer.moved) earthPointer.suppressClickUntil = Date.now() + 250;
-    earthPointer.active = false;
-    mapWrap.classList.remove("dragging");
-    try { canvas.releasePointerCapture(e.pointerId); } catch {}
-    setTimeout(() => { earthPointer.moved = false; }, 0);
-  }
-  canvas.addEventListener("pointerup", endEarthDrag);
-  canvas.addEventListener("pointercancel", endEarthDrag);
-  canvas.addEventListener("wheel", e => {
-    if (state.viewMode !== "earth") return;
-    e.preventDefault();
-    zoomEarth(e.deltaY < 0 ? 1 : -1, e.clientX, e.clientY);
-  }, { passive: false });
 
   // CAT5 banner dismiss
   document.getElementById("cat5Dismiss").addEventListener("click", hideCat5Banner);
