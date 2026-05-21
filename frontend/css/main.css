@@ -261,6 +261,30 @@ body::before {
 .zoom-btn:hover { background: #efe5d2; box-shadow: 2px 2px 0 var(--border); }
 
 .map-wrap { flex: 1; position: relative; overflow: hidden; background: var(--void); min-height: 0; }
+.leaflet-map {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: #d8d2c4;
+}
+.leaflet-map.hidden { display: none; }
+.leaflet-container {
+  background: #d8d2c4;
+  font-family: var(--font-body);
+}
+.leaflet-control-attribution {
+  border-top: 1px solid var(--border);
+  border-left: 1px solid var(--border);
+  background: rgba(255,250,240,0.9);
+  color: var(--muted);
+  font-size: 10px;
+}
+.leaflet-control-zoom { display: none; }
+.leaflet-tile-pane { filter: saturate(0.92) contrast(0.98); }
+.leaflet-tile-selected {
+  outline: 2px solid var(--caution);
+  outline-offset: -2px;
+}
 .earth-tiles {
   position: absolute;
   inset: 0;
@@ -285,7 +309,9 @@ body::before {
   filter: saturate(1.25) contrast(1.08);
   box-shadow: inset 0 0 0 1px var(--border), 4px 4px 0 var(--border);
 }
-#mainCanvas { position: relative; z-index: 2; display: block; width: 100%; height: 100%; cursor: grab; touch-action: none; }
+#mainCanvas { position: relative; z-index: 2; display: block; width: 100%; height: 100%; cursor: crosshair; touch-action: none; }
+.map-wrap.earth-mode #mainCanvas { pointer-events: none; }
+.map-wrap.analysis-mode #mainCanvas { pointer-events: auto; }
 .map-wrap.dragging #mainCanvas { cursor: grabbing; }
 
 .tile-readout {
