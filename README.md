@@ -203,7 +203,7 @@ IPCC AR6 Table 9.9 intermediate scenario: +0.3m by 2050, +0.56m by 2075,
 ## Citation
 
 ```bibtex
-@software{tidewatch2024,
+@software{tidewatch2025,
   author    = {Alhassan Salifu Babamu},
   title     = {TIDEWATCH: Coastal Flood Vulnerability Atlas},
   year      = {2026},
