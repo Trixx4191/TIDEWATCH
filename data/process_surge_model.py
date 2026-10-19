@@ -57,84 +57,6 @@ SLR_INTERMEDIATE_M = {
     2100: 1.01,
 }
 
-# ── REGIONAL POPULATION + INFRASTRUCTURE DATA ────────────────────────────────
-# Source: US Census ACS 2022, HIFLD infrastructure database, FEI calculation
-REGIONAL_DATA = {
-    "gulf_coast": {
-        "population_total": 4_800_000,
-        "population_coastal_low": 2_100_000,
-        "hospitals": 34,
-        "power_plants": 12,
-        "ports": 8,
-        "low_income_pct_region": 0.28,
-        "low_income_pct_flood_zone": 0.524,  # → FEI 187
-        "fei": 187,
-        "benchmark_storm": "Katrina 2005",
-        "peak_surge_ft": 27.8,
-    },
-    "atlantic": {
-        "population_total": 8_200_000,
-        "population_coastal_low": 890_000,
-        "hospitals": 28,
-        "power_plants": 9,
-        "ports": 6,
-        "low_income_pct_region": 0.22,
-        "low_income_pct_flood_zone": 0.312,  # → FEI 142
-        "fei": 142,
-        "benchmark_storm": "Sandy 2012",
-        "peak_surge_ft": 14.1,
-    },
-    "florida": {
-        "population_total": 6_100_000,
-        "population_coastal_low": 1_400_000,
-        "hospitals": 41,
-        "power_plants": 14,
-        "ports": 11,
-        "low_income_pct_region": 0.24,
-        "low_income_pct_flood_zone": 0.374,  # → FEI 156
-        "fei": 156,
-        "benchmark_storm": "Ian 2022",
-        "peak_surge_ft": 18.3,
-    },
-    "pacific": {
-        "population_total": 5_500_000,
-        "population_coastal_low": 340_000,
-        "hospitals": 19,
-        "power_plants": 7,
-        "ports": 5,
-        "low_income_pct_region": 0.21,
-        "low_income_pct_flood_zone": 0.248,  # → FEI 118
-        "fei": 118,
-        "benchmark_storm": "1983 ENSO",
-        "peak_surge_ft": 6.2,
-    },
-    "caribbean": {
-        "population_total": 1_200_000,
-        "population_coastal_low": 680_000,
-        "hospitals": 12,
-        "power_plants": 4,
-        "ports": 7,
-        "low_income_pct_region": 0.31,
-        "low_income_pct_flood_zone": 0.623,  # → FEI 201
-        "fei": 201,
-        "benchmark_storm": "Maria 2017",
-        "peak_surge_ft": 21.4,
-    },
-    "bay_of_bengal": {
-        "population_total": 18_000_000,
-        "population_coastal_low": 8_400_000,
-        "hospitals": 8,
-        "power_plants": 3,
-        "ports": 4,
-        "low_income_pct_region": 0.58,
-        "low_income_pct_flood_zone": 0.812,  # → FEI 312 (≈ 0.812/0.26 × 100)
-        "fei": 312,
-        "benchmark_storm": "1991 Bangladesh Cyclone",
-        "peak_surge_ft": 20.1,
-    },
-}
-
-
 @dataclass
 class InundationResult:
     """Results from a single inundation scenario computation."""
@@ -146,14 +68,8 @@ class InundationResult:
     total_surge_ft: float
     area_km2: float
     area_sq_miles: float
-    population_exposed: int
-    hospitals_at_risk: int
-    power_plants_at_risk: int
-    ports_at_risk: int
-    fei_score: int
-    equity_flag: str
     pct_land_inundated: float
-    inundation_mask: list  # 2D boolean grid (flattened for JSON)
+    source: str
 
 
 def interpolate_slr(year: int) -> float:
@@ -191,28 +107,27 @@ def build_elevation_grid(region_key: str) -> tuple[np.ndarray, dict]:
     """
     elev_path = DATA_DIR / f"elevation_{region_key}.json"
 
-    if elev_path.exists():
-        with open(elev_path) as f:
-            data = json.load(f)
-        rows, cols = data["rows"], data["cols"]
-        grid = np.zeros((rows, cols), dtype=np.float32)
-        for i, pixel in enumerate(data["grid"]):
-            r, c = divmod(i, cols)
-            grid[r, c] = pixel["elev_ft"]
-        return grid, data
-    else:
-        # Generate synthetic grid if elevation file not yet fetched
-        print(f"  ⚠ No elevation file for {region_key}, using synthetic grid")
-        rows, cols = 120, 160
-        grid = np.zeros((rows, cols), dtype=np.float32)
-        rng = np.random.default_rng(hash(region_key) % 2**32)
-        for c in range(cols):
-            coastal_frac = c / cols
-            base = coastal_frac * 35.0
-            grid[:, c] = np.maximum(0, base + rng.normal(0, 3, rows))
-        meta = {"rows": rows, "cols": cols, "bbox": [-90, 29, -88, 31],
-                "resolution_m": 300, "region": region_key}
-        return grid, meta
+    if not elev_path.exists():
+        raise FileNotFoundError(f"Elevation data unavailable for {region_key}: {elev_path}")
+
+    with open(elev_path) as f:
+        data = json.load(f)
+    provenance = data.get("provenance", {})
+    if provenance.get("provider") != "NASA SRTMGL1" or provenance.get("synthetic") is not False:
+        raise ValueError(f"Elevation data for {region_key} has no verified NASA SRTM provenance")
+
+    rows, cols = data.get("rows"), data.get("cols")
+    pixels = data.get("grid")
+    if not isinstance(rows, int) or not isinstance(cols, int) or rows < 2 or cols < 2:
+        raise ValueError(f"Elevation grid dimensions are invalid for {region_key}")
+    if not isinstance(pixels, list) or len(pixels) != rows * cols:
+        raise ValueError(f"Elevation grid pixel count is invalid for {region_key}")
+
+    values = [pixel.get("elev_ft") if pixel else None for pixel in pixels]
+    grid = np.asarray(values, dtype=np.float32).reshape((rows, cols))
+    if not np.isfinite(grid).any():
+        raise ValueError(f"Elevation grid has no valid pixels for {region_key}")
+    return grid, data
 
 
 def flood_fill_inundation(elevation_grid: np.ndarray,
@@ -241,91 +156,56 @@ def flood_fill_inundation(elevation_grid: np.ndarray,
     inundated = np.zeros((rows, cols), dtype=bool)
     visited   = np.zeros((rows, cols), dtype=bool)
 
-    # Seed queue with all coastline pixels (leftmost column)
-    # that are at or below surge threshold
+    # Seed flood fill from ocean NoData cells that touch the grid boundary.
     queue = deque()
     for r in range(rows):
-        if elevation_grid[r, 0] <= surge_threshold_ft:
-            queue.append((r, 0))
-            visited[r, 0] = True
+        for c in (0, cols - 1):
+            if not np.isfinite(elevation_grid[r, c]) and not visited[r, c]:
+                queue.append((r, c))
+                visited[r, c] = True
+    for c in range(cols):
+        for r in (0, rows - 1):
+            if not np.isfinite(elevation_grid[r, c]) and not visited[r, c]:
+                queue.append((r, c))
+                visited[r, c] = True
 
     # 4-connected BFS flood fill
     while queue:
         r, c = queue.popleft()
-        if elevation_grid[r, c] <= surge_threshold_ft:
+        is_ocean = not np.isfinite(elevation_grid[r, c])
+        if not is_ocean and elevation_grid[r, c] > surge_threshold_ft:
+            continue
+        if not is_ocean:
             inundated[r, c] = True
-            for dr, dc in [(-1,0),(1,0),(0,-1),(0,1)]:
-                nr, nc = r + dr, c + dc
-                if 0 <= nr < rows and 0 <= nc < cols and not visited[nr, nc]:
-                    visited[nr, nc] = True
-                    queue.append((nr, nc))
+        for dr, dc in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+            nr, nc = r + dr, c + dc
+            if 0 <= nr < rows and 0 <= nc < cols and not visited[nr, nc]:
+                visited[nr, nc] = True
+                queue.append((nr, nc))
 
     return inundated
 
 
-def compute_metrics(inundated: np.ndarray, region_key: str,
-                    category: int, resolution_m: int) -> dict:
-    """
-    Compute exposure metrics from inundation mask using regional
-    population and infrastructure data.
-
-    Metrics scale linearly with inundation area as a fraction of the
-    maximum (CAT5) inundation — a simplification that is documented
-    in the methodology as a known limitation.
-
-    Args:
-        inundated:    Boolean 2D inundation mask
-        region_key:   Region identifier
-        category:     Storm category (1–5)
-        resolution_m: Pixel resolution in meters
-
-    Returns:
-        Dict of computed exposure metrics
-    """
-    reg = REGIONAL_DATA[region_key]
-    total_pixels = inundated.size
-    inundated_pixels = int(inundated.sum())
-
-    if total_pixels == 0:
-        return {}
-
-    pct_inundated = inundated_pixels / total_pixels
-    # Scale area to realistic regional values
-    max_area_km2 = {
-        "gulf_coast": 18_400, "atlantic": 8_200, "florida": 12_600,
-        "pacific": 3_100, "caribbean": 4_800, "bay_of_bengal": 32_000,
-    }.get(region_key, 5000)
-
-    area_km2 = pct_inundated * max_area_km2
-    area_sq_miles = area_km2 * 0.386102
-
-    # Population scales with area fraction vs CAT5 maximum
-    cat5_pop = reg["population_coastal_low"]
-    pop_exposed = int(cat5_pop * (category / 5) ** 1.4)
-
-    # Infrastructure at risk
-    hospitals_at_risk   = min(reg["hospitals"],   int(reg["hospitals"]   * (category / 5) ** 1.2))
-    power_plants_at_risk = min(reg["power_plants"], int(reg["power_plants"] * (category / 5) ** 1.1))
-    ports_at_risk       = min(reg["ports"],       int(reg["ports"]       * (category / 5) ** 1.3))
-
-    fei = reg["fei"]
-    if fei >= 200:
-        equity_flag = "CRITICAL — Extreme disproportionate exposure"
-    elif fei >= 150:
-        equity_flag = "HIGH — Significant disproportionate exposure"
-    else:
-        equity_flag = "ELEVATED — Disproportionate exposure confirmed"
-
+def compute_metrics(inundated: np.ndarray, elevation_grid: np.ndarray,
+                    metadata: dict) -> dict:
+    """Calculate inundated area from valid raster cells and geographic spacing."""
+    rows, cols = elevation_grid.shape
+    min_lon, min_lat, max_lon, max_lat = metadata["bbox"]
+    lat_step = abs(max_lat - min_lat) / (rows - 1)
+    lon_step = abs(max_lon - min_lon) / (cols - 1)
+    pixel_area_by_row = np.array([
+        111.32 * lat_step * 111.32 * lon_step * np.cos(np.radians(lat))
+        for lat in np.linspace(max_lat, min_lat, rows)
+    ])
+    valid = np.isfinite(elevation_grid)
+    flooded_area = float((inundated.sum(axis=1) * pixel_area_by_row).sum())
+    land_area = float((valid.sum(axis=1) * pixel_area_by_row).sum())
+    if land_area == 0:
+        raise ValueError("Elevation grid contains no valid land cells")
     return {
-        "area_km2":           round(area_km2, 1),
-        "area_sq_miles":      round(area_sq_miles, 1),
-        "pct_land_inundated": round(pct_inundated * 100, 2),
-        "population_exposed": pop_exposed,
-        "hospitals_at_risk":  hospitals_at_risk,
-        "power_plants_at_risk": power_plants_at_risk,
-        "ports_at_risk":      ports_at_risk,
-        "fei_score":          fei,
-        "equity_flag":        equity_flag,
+        "area_km2": round(flooded_area, 2),
+        "area_sq_miles": round(flooded_area * 0.386102, 2),
+        "pct_land_inundated": round(flooded_area / land_area * 100, 2),
     }
 
 
@@ -359,11 +239,10 @@ def compute_inundation(region_key: str, category: int,
     print(f"   Surge: {surge_ft}ft + SLR {slr_ft:.2f}ft = {total_surge_ft:.2f}ft total threshold")
 
     inundated = flood_fill_inundation(elevation_grid, total_surge_ft)
-    metrics   = compute_metrics(inundated, region_key, category, meta.get("resolution_m", 300))
+    metrics   = compute_metrics(inundated, elevation_grid, meta)
 
-    print(f"   ✓ {metrics['area_km2']} km² inundated | "
-          f"{metrics['population_exposed']:,} exposed | "
-          f"FEI {metrics['fei_score']}")
+    print(f"   ✓ {metrics['area_km2']} km² inundated "
+          f"({metrics['pct_land_inundated']}% of valid land cells)")
 
     return InundationResult(
         region=region_key,
@@ -374,21 +253,15 @@ def compute_inundation(region_key: str, category: int,
         total_surge_ft=round(total_surge_ft, 2),
         area_km2=metrics["area_km2"],
         area_sq_miles=metrics["area_sq_miles"],
-        population_exposed=metrics["population_exposed"],
-        hospitals_at_risk=metrics["hospitals_at_risk"],
-        power_plants_at_risk=metrics["power_plants_at_risk"],
-        ports_at_risk=metrics["ports_at_risk"],
-        fei_score=metrics["fei_score"],
-        equity_flag=metrics["equity_flag"],
         pct_land_inundated=metrics["pct_land_inundated"],
-        inundation_mask=inundated.tolist(),
+        source=meta["provenance"]["provider"],
     )
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Compute coastal flood inundation")
     parser.add_argument("--region",   required=True,
-                        choices=list(REGIONAL_DATA.keys()))
+                        choices=sorted({path.stem.removeprefix("elevation_") for path in DATA_DIR.glob("elevation_*.json")}))
     parser.add_argument("--category", required=True, type=int, choices=[1,2,3,4,5])
     parser.add_argument("--slr_year", default=2024, type=int)
     parser.add_argument("--output",   default="data/processed", type=Path)
@@ -399,9 +272,7 @@ if __name__ == "__main__":
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
     with open(out_path, "w") as f:
-        # Exclude large mask from file output (served via API instead)
         result_dict = asdict(result)
-        result_dict.pop("inundation_mask")
         json.dump(result_dict, f, indent=2)
 
     print(f"\n✓ Result saved: {out_path}")

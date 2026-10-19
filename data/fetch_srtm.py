@@ -135,44 +135,6 @@ def _read_hgt_from_bytes(raw: bytes) -> np.ndarray:
     return elevation
 
 
-def _synthetic_elevation(tile_name: str) -> np.ndarray:
-    """
-    Generate realistic synthetic elevation data for demo/testing.
-
-    Uses the tile's geographic position to create plausible coastal
-    terrain: near-sea-level coastal plains with gentle inland rise.
-
-    Args:
-        tile_name: SRTM tile identifier used to seed randomness
-
-    Returns:
-        3601×3601 numpy array of synthetic elevation in meters
-    """
-    seed = sum(ord(c) for c in tile_name)
-    rng = np.random.default_rng(seed)
-
-    size = 3601
-    grid = np.zeros((size, size), dtype=np.float32)
-
-    # Coastal plain: very flat near coast (cols 0-800), rising inland
-    for col in range(size):
-        base_elev = (col / size) * 25.0  # 0m at coast → 25m inland
-        noise = rng.normal(0, 1.5, size)
-        grid[:, col] = np.maximum(0, base_elev + noise)
-
-    # Add some river channels (low-lying corridors)
-    for _ in range(3):
-        river_row = rng.integers(200, size - 200)
-        width = rng.integers(20, 60)
-        grid[river_row - width:river_row + width, :] *= 0.3
-
-    # Slight barrier island features along immediate coast
-    barrier_col = rng.integers(30, 80)
-    grid[:, barrier_col - 15:barrier_col + 15] += rng.uniform(1, 4, (size, 30))
-
-    return grid
-
-
 def merge_tiles(tiles: list[np.ndarray], bbox: list) -> dict:
     """
     Merge multiple SRTM tiles into a single elevation grid and
