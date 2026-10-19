@@ -64,13 +64,7 @@ REGION_STATIONS = {
         {"id": "9751364", "name": "Charlotte Amalie, VI",    "lat": 18.340, "lon": -64.924},
         {"id": "9751401", "name": "Christiansted, VI",       "lat": 17.747, "lon": -64.704},
     ],
-    "bay_of_bengal": [
-        # IOC/UHSLC gauges — synthetic for demo (real IDs from uhslc.soest.hawaii.edu)
-        {"id": "SYN_COX", "name": "Cox's Bazar, Bangladesh", "lat": 21.443, "lon": 91.975},
-        {"id": "SYN_CHT", "name": "Chittagong, Bangladesh",  "lat": 22.329, "lon": 91.834},
-        {"id": "SYN_KHU", "name": "Khulna, Bangladesh",      "lat": 22.815, "lon": 89.550},
-        {"id": "SYN_PAR", "name": "Paradip, India",          "lat": 20.260, "lon": 86.609},
-    ],
+    "bay_of_bengal": [],
 }
 
 # ── HISTORICAL STORM PEAKS ───────────────────────────────────────────────────
@@ -120,8 +114,8 @@ def fetch_station_data(station: dict, years: int = 5) -> dict:
     Fetch water level data from NOAA CO-OPS API for a single station.
 
     Downloads annual maximum water levels for the past N years.
-    Falls back to synthetic data if the station is not in CO-OPS
-    (e.g., Bay of Bengal synthetic stations).
+    Raises when the station is not supported by NOAA CO-OPS or no observations
+    can be retrieved.
 
     Args:
         station: Dict with id, name, lat, lon
@@ -132,9 +126,8 @@ def fetch_station_data(station: dict, years: int = 5) -> dict:
     """
     station_id = station["id"]
 
-    # Synthetic stations (Bay of Bengal, etc.)
-    if station_id.startswith("SYN_"):
-        return _synthetic_station_data(station)
+    if not station_id.isdigit():
+        raise ValueError(f"Station {station_id} is not a NOAA CO-OPS station")
 
     print(f"  → Fetching station {station_id} ({station['name']})")
 
@@ -157,8 +150,7 @@ def fetch_station_data(station: dict, years: int = 5) -> dict:
             print(f"    ⚠ {year} failed: {e}")
 
     if not annual_maxima:
-        print(f"    ⚠ No live data, using synthetic for {station['name']}")
-        return _synthetic_station_data(station)
+        raise RuntimeError(f"No NOAA observations returned for {station['name']}")
 
     mhhw_baseline = statistics.mean([y["mean_ft"] for y in annual_maxima])
 
@@ -214,42 +206,6 @@ def _fetch_yearly_water_level(station_id: str, year: int) -> list[float]:
     return values
 
 
-def _synthetic_station_data(station: dict) -> dict:
-    """
-    Generate realistic synthetic tidal gauge data for stations
-    not accessible via NOAA CO-OPS (e.g., international stations).
-
-    Args:
-        station: Dict with id, name, lat, lon
-
-    Returns:
-        Synthetic station data dict matching the live format
-    """
-    import random
-    rng = random.Random(sum(ord(c) for c in station["id"]))
-
-    annual_maxima = []
-    base_max = rng.uniform(2.5, 8.0)
-    for year in range(2018, 2024):
-        annual_maxima.append({
-            "year": year,
-            "max_ft": round(base_max + rng.uniform(-0.8, 1.5), 2),
-            "mean_ft": round(base_max * 0.3 + rng.uniform(-0.1, 0.1), 2),
-        })
-
-    return {
-        "station_id":    station["id"],
-        "name":          station["name"],
-        "lat":           station["lat"],
-        "lon":           station["lon"],
-        "datum":         "MHHW",
-        "units":         "feet",
-        "mhhw_baseline": round(base_max * 0.3, 2),
-        "annual_maxima": annual_maxima,
-        "source":        "Synthetic (UHSLC / IOC reference)",
-    }
-
-
 def fetch_tides(region_key: str, output_dir: Path = OUTPUT_DIR) -> Path:
     """
     Main entry point. Fetches tidal data for all stations in a region,
@@ -271,6 +227,8 @@ def fetch_tides(region_key: str, output_dir: Path = OUTPUT_DIR) -> Path:
     output_path = output_dir / f"tides_{region_key}.json"
 
     stations = REGION_STATIONS[region_key]
+    if not stations:
+        raise RuntimeError(f"No NOAA CO-OPS stations are configured for {region_key}")
     station_data = []
 
     for station in stations:
@@ -281,7 +239,8 @@ def fetch_tides(region_key: str, output_dir: Path = OUTPUT_DIR) -> Path:
         "region": region_key,
         "stations": station_data,
         "storm_peaks": STORM_PEAKS.get(region_key, []),
-        "source": "NOAA CO-OPS Water Level API + NOAA NHC Storm Reports",
+        "source": "NOAA CO-OPS Water Level API",
+        "provenance": {"provider": "NOAA CO-OPS", "synthetic": False},
     }
 
     with open(output_path, "w") as f:
