@@ -39,15 +39,15 @@ REGION_FILTERS = {
     "bay_of_bengal": {"lat": 22.0,  "lon": 90.5,   "radius_nm": 400, "basin": None},
 }
 
-            {"lat": 19.0, "lon": 89.5,  "wind_kt": 130, "pressure": 935,  "dt": "1991-04-28 12:00"},
-            {"lat": 20.5, "lon": 90.5,  "wind_kt": 140, "pressure": 918,  "dt": "1991-04-29 06:00"},
-            {"lat": 21.8, "lon": 91.5,  "wind_kt": 130, "pressure": 928,  "dt": "1991-04-29 18:00"},
-            {"lat": 23.0, "lon": 91.8,  "wind_kt": 80,  "pressure": 955,  "dt": "1991-04-30 06:00"},
-        ],
-        "landfall": {"lat": 21.8, "lon": 91.5, "dt": "1991-04-29 18:00", "wind_kt": 130},
-        "peak_surge_ft": 20.1,
-    },
-}
+SAFFIR_SIMPSON = (
+    (0, 33, "TD", "#5c9bd6"),
+    (34, 63, "TS", "#4ecdc4"),
+    (64, 82, "CAT1", "#ffe66d"),
+    (83, 95, "CAT2", "#f7b731"),
+    (96, 112, "CAT3", "#ff6b35"),
+    (113, 136, "CAT4", "#e74c3c"),
+    (137, 999, "CAT5", "#8e44ad"),
+)
 
 
 def classify_intensity(wind_kt: int) -> tuple:
@@ -113,7 +113,6 @@ def track_to_geojson(track: dict) -> dict:
             "name":         track["name"],
             "id":           track["id"],
             "landfall":     track.get("landfall"),
-            "peak_surge_ft": track.get("peak_surge_ft"),
             "nodes":        nodes_with_meta,
         },
         "geometry": {
@@ -125,8 +124,7 @@ def track_to_geojson(track: dict) -> dict:
 
 def fetch_hurricane_tracks(region_key: str, output_dir: Path = OUTPUT_DIR) -> Path:
     """
-    Main entry point. Returns benchmark + any live HURDAT2 tracks
-    that passed within the region filter radius.
+    Fetch NOAA HURDAT2 tracks passing within the region filter radius.
 
     Args:
         region_key: Region identifier string

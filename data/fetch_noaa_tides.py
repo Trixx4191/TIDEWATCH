@@ -1,11 +1,10 @@
 """
 fetch_noaa_tides.py
 ===================
-Downloads 20 years of hourly water level data from the NOAA Center for
+Downloads five years of hourly water level data from the NOAA Center for
 Operational Oceanographic Products and Services (CO-OPS) tidal gauge network.
 
-Computes MHHW (Mean Higher High Water) baseline per station and tags
-historically significant storm surge peaks.
+Computes annual water-level maxima and an observed-period baseline per station.
 
 Data source: NOAA CO-OPS Water Level API
 API docs:    https://api.tidesandcurrents.noaa.gov/api/prod/
@@ -66,48 +65,6 @@ REGION_STATIONS = {
     ],
     "bay_of_bengal": [],
 }
-
-# ── HISTORICAL STORM PEAKS ───────────────────────────────────────────────────
-# Documented surge heights above MHHW at peak gauge readings
-STORM_PEAKS = {
-    "gulf_coast": [
-        {"name": "Katrina", "year": 2005, "peak_ft": 27.8, "date": "2005-08-29"},
-        {"name": "Camille", "year": 1969, "peak_ft": 24.2, "date": "1969-08-17"},
-        {"name": "Ida",     "year": 2021, "peak_ft": 9.8,  "date": "2021-08-29"},
-        {"name": "Gustav",  "year": 2008, "peak_ft": 10.1, "date": "2008-09-01"},
-    ],
-    "atlantic": [
-        {"name": "Sandy",   "year": 2012, "peak_ft": 14.1, "date": "2012-10-29"},
-        {"name": "Irene",   "year": 2011, "peak_ft": 4.5,  "date": "2011-08-28"},
-        {"name": "Floyd",   "year": 1999, "peak_ft": 5.1,  "date": "1999-09-16"},
-        {"name": "Gloria",  "year": 1985, "peak_ft": 4.8,  "date": "1985-09-27"},
-    ],
-    "florida": [
-        {"name": "Ian",      "year": 2022, "peak_ft": 18.3, "date": "2022-09-28"},
-        {"name": "Irma",     "year": 2017, "peak_ft": 10.2, "date": "2017-09-10"},
-        {"name": "Michael",  "year": 2018, "peak_ft": 14.7, "date": "2018-10-10"},
-        {"name": "Charley",  "year": 2004, "peak_ft": 6.8,  "date": "2004-08-13"},
-    ],
-    "pacific": [
-        {"name": "1983 ENSO", "year": 1983, "peak_ft": 6.2,  "date": "1983-01-28"},
-        {"name": "1997 ENSO", "year": 1997, "peak_ft": 5.8,  "date": "1997-12-15"},
-        {"name": "Kathleen",  "year": 1976, "peak_ft": 3.1,  "date": "1976-09-10"},
-        {"name": "2010 ENSO", "year": 2010, "peak_ft": 4.9,  "date": "2010-02-05"},
-    ],
-    "caribbean": [
-        {"name": "Maria",    "year": 2017, "peak_ft": 21.4, "date": "2017-09-20"},
-        {"name": "Georges",  "year": 1998, "peak_ft": 11.2, "date": "1998-09-21"},
-        {"name": "Hugo",     "year": 1989, "peak_ft": 17.1, "date": "1989-09-18"},
-        {"name": "Irma",     "year": 2017, "peak_ft": 9.4,  "date": "2017-09-07"},
-    ],
-    "bay_of_bengal": [
-        {"name": "1991 Cyclone", "year": 1991, "peak_ft": 20.1, "date": "1991-04-29"},
-        {"name": "Sidr",         "year": 2007, "peak_ft": 16.4, "date": "2007-11-15"},
-        {"name": "Aila",         "year": 2009, "peak_ft": 9.8,  "date": "2009-05-25"},
-        {"name": "Amphan",       "year": 2020, "peak_ft": 17.1, "date": "2020-05-20"},
-    ],
-}
-
 
 def fetch_station_data(station: dict, years: int = 5) -> dict:
     """
@@ -209,7 +166,7 @@ def _fetch_yearly_water_level(station_id: str, year: int) -> list[float]:
 def fetch_tides(region_key: str, output_dir: Path = OUTPUT_DIR) -> Path:
     """
     Main entry point. Fetches tidal data for all stations in a region,
-    appends historical storm peaks, and saves as JSON.
+    and saves the observed station records as JSON.
 
     Args:
         region_key: Key from REGION_STATIONS dict
@@ -238,7 +195,6 @@ def fetch_tides(region_key: str, output_dir: Path = OUTPUT_DIR) -> Path:
     result = {
         "region": region_key,
         "stations": station_data,
-        "storm_peaks": STORM_PEAKS.get(region_key, []),
         "source": "NOAA CO-OPS Water Level API",
         "provenance": {"provider": "NOAA CO-OPS", "synthetic": False},
     }
@@ -246,8 +202,7 @@ def fetch_tides(region_key: str, output_dir: Path = OUTPUT_DIR) -> Path:
     with open(output_path, "w") as f:
         json.dump(result, f, indent=2)
 
-    print(f"  ✓ Saved {output_path} ({len(station_data)} stations, "
-          f"{len(result['storm_peaks'])} storm peaks)")
+    print(f"  ✓ Saved {output_path} ({len(station_data)} stations)")
     return output_path
 
 

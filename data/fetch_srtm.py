@@ -228,7 +228,7 @@ def fetch_srtm(region_key: str, output_dir: Path = OUTPUT_DIR) -> Path:
         session.auth = (EARTHDATA_USER, EARTHDATA_PASS)
         print(f"   Auth: NASA Earthdata ({EARTHDATA_USER})")
     else:
-        print("   ⚠ NASA_EARTHDATA_USER/PASS not set — using synthetic data")
+        print("   ⚠ NASA Earthdata credentials not set — attempting anonymous download")
 
     tile_names = get_srtm_tile_names(region["bbox"])
     print(f"   Tiles required: {tile_names}")

@@ -22,9 +22,9 @@ from pathlib import Path
 from datetime import datetime, timezone
 
 from fetch_srtm             import fetch_srtm,             REGIONS
-from fetch_noaa_tides       import fetch_tides,             REGION_STATIONS
-from fetch_hurricane_tracks import fetch_hurricane_tracks,  REGION_FILTERS
-from process_surge_model    import compute_inundation,      REGIONAL_DATA
+from fetch_noaa_tides       import fetch_tides
+from fetch_hurricane_tracks import fetch_hurricane_tracks
+from process_surge_model    import compute_inundation
 
 ALL_REGIONS   = list(REGIONS.keys())
 PROCESSED_DIR = Path("data/processed")
@@ -151,7 +151,7 @@ def run_pipeline(regions: list, skip_srtm: bool = False) -> dict:
                     json.dump(result_dict, f, indent=2)
 
                 region_summary["files"].append(str(out_path))
-                    print(f"        CAT {cat}: {result.area_km2} km² | "
+                print(f"        CAT {cat}: {result.area_km2} km² | "
                         f"{result.pct_land_inundated}% of valid land")
             except Exception as e:
                 region_summary["errors"].append(f"CAT{cat} surge error: {e}")
