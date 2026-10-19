@@ -36,116 +36,9 @@ REGION_FILTERS = {
     "florida":       {"lat": 26.0,  "lon": -81.0,  "radius_nm": 300, "basin": "atlantic"},
     "pacific":       {"lat": 35.5,  "lon": -120.0, "radius_nm": 250, "basin": "pacific"},
     "caribbean":     {"lat": 18.0,  "lon": -66.0,  "radius_nm": 300, "basin": "atlantic"},
-    "bay_of_bengal": {"lat": 22.0,  "lon": 90.5,   "radius_nm": 400, "basin": "synthetic"},
+    "bay_of_bengal": {"lat": 22.0,  "lon": 90.5,   "radius_nm": 400, "basin": None},
 }
 
-# ── SAFFIR-SIMPSON WIND THRESHOLDS (knots) ───────────────────────────────────
-SAFFIR_SIMPSON = [
-    (0,   33,  "TD",   "#5c9bd6"),
-    (34,  63,  "TS",   "#4ecdc4"),
-    (64,  82,  "CAT1", "#ffe66d"),
-    (83,  95,  "CAT2", "#f7b731"),
-    (96,  112, "CAT3", "#ff6b35"),
-    (113, 136, "CAT4", "#e74c3c"),
-    (137, 999, "CAT5", "#8e44ad"),
-]
-
-# ── HARDCODED BENCHMARK TRACKS ───────────────────────────────────────────────
-# Key historical storms per region — used as guaranteed display tracks
-BENCHMARK_TRACKS = {
-    "gulf_coast": {
-        "name": "Katrina (2005)",
-        "id": "AL122005",
-        "nodes": [
-            {"lat": 23.1, "lon": -75.1, "wind_kt": 35,  "pressure": 1008, "dt": "2005-08-23 18:00"},
-            {"lat": 24.5, "lon": -76.5, "wind_kt": 50,  "pressure": 994,  "dt": "2005-08-24 12:00"},
-            {"lat": 25.7, "lon": -78.7, "wind_kt": 75,  "pressure": 983,  "dt": "2005-08-25 06:00"},
-            {"lat": 26.0, "lon": -80.1, "wind_kt": 80,  "pressure": 981,  "dt": "2005-08-25 18:00"},
-            {"lat": 26.1, "lon": -81.8, "wind_kt": 65,  "pressure": 985,  "dt": "2005-08-26 06:00"},
-            {"lat": 26.2, "lon": -84.0, "wind_kt": 100, "pressure": 964,  "dt": "2005-08-27 00:00"},
-            {"lat": 26.4, "lon": -86.7, "wind_kt": 130, "pressure": 939,  "dt": "2005-08-27 18:00"},
-            {"lat": 27.2, "lon": -88.6, "wind_kt": 150, "pressure": 909,  "dt": "2005-08-28 12:00"},
-            {"lat": 28.2, "lon": -89.6, "wind_kt": 125, "pressure": 918,  "dt": "2005-08-29 06:00"},
-            {"lat": 29.5, "lon": -89.6, "wind_kt": 100, "pressure": 940,  "dt": "2005-08-29 12:00"},
-            {"lat": 31.0, "lon": -89.1, "wind_kt": 65,  "pressure": 962,  "dt": "2005-08-29 18:00"},
-            {"lat": 32.6, "lon": -88.6, "wind_kt": 40,  "pressure": 979,  "dt": "2005-08-30 06:00"},
-        ],
-        "landfall": {"lat": 29.5, "lon": -89.6, "dt": "2005-08-29 12:00", "wind_kt": 100},
-        "peak_surge_ft": 27.8,
-    },
-    "atlantic": {
-        "name": "Sandy (2012)",
-        "id": "AL182012",
-        "nodes": [
-            {"lat": 14.0, "lon": -77.0, "wind_kt": 45,  "pressure": 999,  "dt": "2012-10-22 18:00"},
-            {"lat": 16.2, "lon": -77.8, "wind_kt": 55,  "pressure": 990,  "dt": "2012-10-23 06:00"},
-            {"lat": 18.8, "lon": -78.8, "wind_kt": 80,  "pressure": 975,  "dt": "2012-10-24 00:00"},
-            {"lat": 22.5, "lon": -78.5, "wind_kt": 85,  "pressure": 970,  "dt": "2012-10-25 00:00"},
-            {"lat": 26.1, "lon": -77.7, "wind_kt": 65,  "pressure": 980,  "dt": "2012-10-26 00:00"},
-            {"lat": 30.0, "lon": -75.5, "wind_kt": 65,  "pressure": 971,  "dt": "2012-10-27 12:00"},
-            {"lat": 34.0, "lon": -73.5, "wind_kt": 70,  "pressure": 965,  "dt": "2012-10-28 12:00"},
-            {"lat": 37.5, "lon": -73.3, "wind_kt": 70,  "pressure": 955,  "dt": "2012-10-29 12:00"},
-            {"lat": 39.9, "lon": -74.3, "wind_kt": 70,  "pressure": 945,  "dt": "2012-10-29 18:00"},
-            {"lat": 41.5, "lon": -74.5, "wind_kt": 55,  "pressure": 955,  "dt": "2012-10-30 06:00"},
-            {"lat": 43.0, "lon": -74.5, "wind_kt": 45,  "pressure": 965,  "dt": "2012-10-30 18:00"},
-        ],
-        "landfall": {"lat": 39.9, "lon": -74.3, "dt": "2012-10-29 18:00", "wind_kt": 70},
-        "peak_surge_ft": 14.1,
-    },
-    "florida": {
-        "name": "Ian (2022)",
-        "id": "AL092022",
-        "nodes": [
-            {"lat": 16.5, "lon": -79.5, "wind_kt": 35,  "pressure": 1005, "dt": "2022-09-23 00:00"},
-            {"lat": 18.8, "lon": -81.5, "wind_kt": 65,  "pressure": 984,  "dt": "2022-09-24 00:00"},
-            {"lat": 21.0, "lon": -83.0, "wind_kt": 100, "pressure": 964,  "dt": "2022-09-25 00:00"},
-            {"lat": 23.5, "lon": -84.0, "wind_kt": 130, "pressure": 939,  "dt": "2022-09-26 00:00"},
-            {"lat": 25.5, "lon": -84.5, "wind_kt": 140, "pressure": 931,  "dt": "2022-09-27 06:00"},
-            {"lat": 26.7, "lon": -82.2, "wind_kt": 130, "pressure": 952,  "dt": "2022-09-28 12:00"},
-            {"lat": 28.0, "lon": -81.5, "wind_kt": 100, "pressure": 966,  "dt": "2022-09-28 18:00"},
-            {"lat": 29.5, "lon": -81.0, "wind_kt": 70,  "pressure": 975,  "dt": "2022-09-29 12:00"},
-            {"lat": 31.5, "lon": -80.0, "wind_kt": 60,  "pressure": 980,  "dt": "2022-09-30 06:00"},
-        ],
-        "landfall": {"lat": 26.7, "lon": -82.2, "dt": "2022-09-28 12:00", "wind_kt": 130},
-        "peak_surge_ft": 18.3,
-    },
-    "pacific": {
-        "name": "1983 ENSO Flood Event",
-        "id": "ENSO1983",
-        "nodes": [
-            {"lat": 38.0, "lon": -128.0, "wind_kt": 0, "pressure": 1008, "dt": "1983-01-20 00:00"},
-            {"lat": 37.5, "lon": -124.0, "wind_kt": 0, "pressure": 1005, "dt": "1983-01-23 00:00"},
-            {"lat": 37.0, "lon": -122.5, "wind_kt": 0, "pressure": 1002, "dt": "1983-01-26 00:00"},
-            {"lat": 36.5, "lon": -121.0, "wind_kt": 0, "pressure": 999,  "dt": "1983-01-28 00:00"},
-        ],
-        "landfall": {"lat": 37.0, "lon": -122.5, "dt": "1983-01-28 00:00", "wind_kt": 0},
-        "peak_surge_ft": 6.2,
-    },
-    "caribbean": {
-        "name": "Maria (2017)",
-        "id": "AL152017",
-        "nodes": [
-            {"lat": 13.5, "lon": -57.0, "wind_kt": 35,  "pressure": 1006, "dt": "2017-09-17 00:00"},
-            {"lat": 14.8, "lon": -60.5, "wind_kt": 65,  "pressure": 983,  "dt": "2017-09-18 00:00"},
-            {"lat": 15.5, "lon": -62.5, "wind_kt": 115, "pressure": 950,  "dt": "2017-09-18 18:00"},
-            {"lat": 16.5, "lon": -64.5, "wind_kt": 145, "pressure": 912,  "dt": "2017-09-19 12:00"},
-            {"lat": 17.5, "lon": -65.5, "wind_kt": 155, "pressure": 908,  "dt": "2017-09-19 18:00"},
-            {"lat": 18.3, "lon": -66.5, "wind_kt": 145, "pressure": 917,  "dt": "2017-09-20 06:00"},
-            {"lat": 19.8, "lon": -68.0, "wind_kt": 115, "pressure": 940,  "dt": "2017-09-21 00:00"},
-            {"lat": 22.0, "lon": -70.0, "wind_kt": 95,  "pressure": 952,  "dt": "2017-09-22 00:00"},
-            {"lat": 25.0, "lon": -73.5, "wind_kt": 85,  "pressure": 960,  "dt": "2017-09-23 12:00"},
-        ],
-        "landfall": {"lat": 18.3, "lon": -66.5, "dt": "2017-09-20 06:00", "wind_kt": 145},
-        "peak_surge_ft": 21.4,
-    },
-    "bay_of_bengal": {
-        "name": "1991 Bangladesh Cyclone",
-        "id": "BOB1991",
-        "nodes": [
-            {"lat": 12.5, "lon": 87.0,  "wind_kt": 35,  "pressure": 1002, "dt": "1991-04-24 00:00"},
-            {"lat": 14.0, "lon": 87.5,  "wind_kt": 55,  "pressure": 990,  "dt": "1991-04-25 00:00"},
-            {"lat": 15.5, "lon": 88.5,  "wind_kt": 90,  "pressure": 965,  "dt": "1991-04-26 12:00"},
-            {"lat": 17.0, "lon": 89.0,  "wind_kt": 115, "pressure": 947,  "dt": "1991-04-27 12:00"},
             {"lat": 19.0, "lon": 89.5,  "wind_kt": 130, "pressure": 935,  "dt": "1991-04-28 12:00"},
             {"lat": 20.5, "lon": 90.5,  "wind_kt": 140, "pressure": 918,  "dt": "1991-04-29 06:00"},
             {"lat": 21.8, "lon": 91.5,  "wind_kt": 130, "pressure": 928,  "dt": "1991-04-29 18:00"},
@@ -251,40 +144,29 @@ def fetch_hurricane_tracks(region_key: str, output_dir: Path = OUTPUT_DIR) -> Pa
 
     features = []
 
-    # Always include the benchmark track for this region
-    if region_key in BENCHMARK_TRACKS:
-        benchmark = BENCHMARK_TRACKS[region_key]
-        features.append(track_to_geojson(benchmark))
-        print(f"  ✓ Benchmark track: {benchmark['name']}")
-
-    # Attempt live HURDAT2 download for additional tracks
     region_filter = REGION_FILTERS[region_key]
     basin = region_filter["basin"]
 
-    if basin in HURDAT2_URLS:
-        try:
-            print(f"  → Downloading HURDAT2 ({basin})...")
-            resp = requests.get(HURDAT2_URLS[basin], timeout=30)
-            if resp.status_code == 200:
-                additional = _parse_hurdat2(
-                    resp.text,
-                    region_filter["lat"],
-                    region_filter["lon"],
-                    region_filter["radius_nm"],
-                    exclude_id=BENCHMARK_TRACKS.get(region_key, {}).get("id"),
-                )
-                features.extend(additional[:5])  # max 5 additional tracks
-                print(f"  ✓ {len(additional)} additional HURDAT2 tracks found")
-            else:
-                print(f"  ⚠ HURDAT2 download returned {resp.status_code}")
-        except Exception as e:
-            print(f"  ⚠ HURDAT2 download failed: {e}")
+    if basin not in HURDAT2_URLS:
+        raise RuntimeError(f"HURDAT2 coverage is unavailable for {region_key}")
+
+    response = requests.get(HURDAT2_URLS[basin], timeout=30)
+    response.raise_for_status()
+    features = _parse_hurdat2(
+        response.text,
+        region_filter["lat"],
+        region_filter["lon"],
+        region_filter["radius_nm"],
+    )
+    if not features:
+        raise RuntimeError(f"No HURDAT2 tracks found near {region_key}")
 
     geojson = {
         "type": "FeatureCollection",
         "region": region_key,
         "features": features,
-        "source": "NOAA NHC HURDAT2 + Benchmark storm archive",
+        "source": "NOAA NHC HURDAT2",
+        "provenance": {"provider": "NOAA NHC HURDAT2", "synthetic": False},
     }
 
     with open(output_path, "w") as f:
