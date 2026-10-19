@@ -35,37 +35,40 @@ export async function fetchRegions() {
 export async function fetchSurge(region, category, slrYear = 2024) {
   try {
     return await _get(`/surge?region=${region}&category=${category}&slr_year=${slrYear}`, 300_000);
-  } catch {
-    return computeFallbackSurge(region, category, slrYear);
+async function requestOrUnavailable(path, emptyData, ttlMs) {
+  try {
+    return await _get(path, ttlMs);
+  } catch (error) {
+    return { ...emptyData, available: false, error: error.message };
   }
 }
-
-export async function fetchStorms(region) {
-  try {
+  } catch {
+    return computeFallbackSurge(region, category, slrYear);
+  return requestOrUnavailable("/regions", { regions: [] }, 24 * 60 * 60_000);
     return await _get(`/storms?region=${region}`, 3600_000);
   } catch {
     return { features: [FALLBACK_TRACKS[region]].filter(Boolean) };
-  }
-}
-
-export async function fetchTides(region) {
-  try {
+  return requestOrUnavailable(
+    `/surge?region=${encodeURIComponent(region)}&category=${category}&slr_year=${slrYear}`,
+    {},
+    300_000,
+  );
     return await _get(`/tides?region=${region}`, 3600_000);
   } catch {
     return FALLBACK_TIDES[region] || { stations: [], storm_peaks: [] };
-  }
-}
-
-// ── IPCC AR6 SLR interpolation (client-side mirror) ──────────────────────────
-const SLR_TABLE = {
+  return requestOrUnavailable(
+    `/storms?region=${encodeURIComponent(region)}`,
+    { type: "FeatureCollection", features: [] },
+    3_600_000,
+  );
   2024:0.06, 2030:0.10, 2040:0.17, 2050:0.30,
   2060:0.38, 2075:0.56, 2090:0.78, 2100:1.01,
 };
-
-export function interpolateSLR(year) {
-  year = Math.max(2024, Math.min(2100, year));
-  const years = Object.keys(SLR_TABLE).map(Number).sort((a,b)=>a-b);
-  for (let i = 0; i < years.length - 1; i++) {
+  return requestOrUnavailable(
+    `/tides?region=${encodeURIComponent(region)}`,
+    { stations: [], storm_peaks: [] },
+    3_600_000,
+  );
     const y0 = years[i], y1 = years[i+1];
     if (year >= y0 && year <= y1) {
       const t = (year - y0) / (y1 - y0);

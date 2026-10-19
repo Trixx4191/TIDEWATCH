@@ -68,16 +68,20 @@ function run() {
   assert.equal(region.statusCode, 200);
   assert.equal(region.body.key, "gulf_coast");
 
-  const surge = invokeRouter(surgeRouter, "/", {
+  const unavailableSurge = invokeRouter(surgeRouter, "/", {
     region: "gulf_coast",
     category: "5",
     slr_year: "2075",
   });
-  assert.equal(surge.statusCode, 200);
-  assert.equal(surge.body.region, "gulf_coast");
-  assert.equal(surge.body.category, 5);
-  assert.equal(surge.body.alert_level, "CATASTROPHIC");
-  assert.ok(surge.body.total_surge_ft > surge.body.surge_base_ft);
+  assert.equal(unavailableSurge.statusCode, 503);
+  assert.equal(unavailableSurge.body.error, "Verified scenario data is unavailable");
+  assert.equal("population_exposed" in unavailableSurge.body, false);
+
+  const malformedCategory = invokeRouter(surgeRouter, "/", {
+    region: "gulf_coast",
+    category: "5cat",
+  });
+  assert.equal(malformedCategory.statusCode, 400);
 
   const tides = invokeRouter(tidesRouter, "/", { region: "gulf_coast" });
   assert.equal(tides.statusCode, 200);
