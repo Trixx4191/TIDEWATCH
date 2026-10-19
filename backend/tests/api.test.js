@@ -84,14 +84,14 @@ function run() {
   assert.equal(malformedCategory.statusCode, 400);
 
   const tides = invokeRouter(tidesRouter, "/", { region: "gulf_coast" });
-  assert.equal(tides.statusCode, 200);
-  assert.ok(Array.isArray(tides.body.stations));
-  assert.ok(tides.body.stations.length > 0);
+  assert.equal(tides.statusCode, 503);
+  assert.equal(tides.body.error, "Verified NOAA CO-OPS observations are unavailable");
+  assert.equal("stations" in tides.body, false);
 
   const storms = invokeRouter(stormsRouter, "/", { region: "gulf_coast" });
-  assert.equal(storms.statusCode, 200);
-  assert.equal(storms.body.type, "FeatureCollection");
-  assert.ok(Array.isArray(storms.body.features));
+  assert.equal(storms.statusCode, 503);
+  assert.equal(storms.body.error, "Verified NOAA HURDAT2 tracks are unavailable");
+  assert.equal("features" in storms.body, false);
 
   const badRegion = invokeRouter(surgeRouter, "/", { region: "unknown", category: "1" });
   assert.equal(badRegion.statusCode, 400);
