@@ -1,7 +1,7 @@
 {
   "name": "tidewatch",
   "version": "1.0.0",
-  "description": "Coastal Flood Vulnerability Atlas — NASA SRTM + MODIS + NOAA data fusion platform",
+  "description": "Coastal flood screening dashboard using SRTM, NOAA water levels, and HURDAT2 tracks",
   "main": "backend/server.js",
   "scripts": {
     "start": "node backend/server.js",

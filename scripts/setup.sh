@@ -50,12 +50,10 @@ echo -e "${GREEN}  ✓ Directories created${RESET}"
 # ── ENV FILE ──────────────────────────────────────────────────────────────────
 echo ""
 echo -e "${AMBER}[3/5] Setting up environment...${RESET}"
-if [ ! -f .env ]; then
-  cp .env.example .env
-  echo -e "${GREEN}  ✓ .env created from .env.example${RESET}"
-  echo -e "${AMBER}  ⚠ Edit .env with your NASA Earthdata + NOAA API credentials${RESET}"
-else
+if [ -f .env ]; then
   echo -e "${GREEN}  ✓ .env already exists${RESET}"
+else
+  echo -e "${AMBER}  No .env found; optional API credentials can be added later${RESET}"
 fi
 
 # ── PYTHON DEPENDENCIES ───────────────────────────────────────────────────────

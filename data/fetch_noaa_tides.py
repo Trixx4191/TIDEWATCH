@@ -79,7 +79,7 @@ def fetch_station_data(station: dict, years: int = 5) -> dict:
         years:   Number of years of data to fetch
 
     Returns:
-        Dict with station metadata, MHHW baseline, annual maxima, and tide series
+        Dict with station metadata, annual maxima, and average observed level
     """
     station_id = station["id"]
 
@@ -109,7 +109,7 @@ def fetch_station_data(station: dict, years: int = 5) -> dict:
     if not annual_maxima:
         raise RuntimeError(f"No NOAA observations returned for {station['name']}")
 
-    mhhw_baseline = statistics.mean([y["mean_ft"] for y in annual_maxima])
+    mean_level_above_mhhw_ft = statistics.mean([year["mean_ft"] for year in annual_maxima])
 
     return {
         "station_id":    station_id,
@@ -118,7 +118,7 @@ def fetch_station_data(station: dict, years: int = 5) -> dict:
         "lon":           station["lon"],
         "datum":         "MHHW",
         "units":         "feet",
-        "mhhw_baseline": round(mhhw_baseline, 2),
+        "mean_level_above_mhhw_ft": round(mean_level_above_mhhw_ft, 2),
         "annual_maxima": annual_maxima,
         "source":        "NOAA CO-OPS",
     }
