@@ -182,14 +182,13 @@ def merge_tiles(tiles: list[np.ndarray], bbox: list) -> dict:
     grid = []
     for r in range(rows):
         for c in range(cols):
-            elev_m = float(subsampled[r, c])
-            if np.isnan(elev_m):
-                elev_m = 0.0
+            valid = np.isfinite(subsampled[r, c])
+            elev_m = round(float(subsampled[r, c]), 2) if valid else None
             grid.append({
                 "lat": round(float(lat_vals[r]), 5),
                 "lon": round(float(lon_vals[c]), 5),
-                "elev_m": round(elev_m, 2),
-                "elev_ft": round(elev_m * 3.28084, 2),
+                "elev_m": elev_m,
+                "elev_ft": round(elev_m * 3.28084, 2) if valid else None,
             })
 
     return {
@@ -248,6 +247,11 @@ def fetch_srtm(region_key: str, output_dir: Path = OUTPUT_DIR) -> Path:
     result["region"] = region_key
     result["region_name"] = region["name"]
     result["source"] = "NASA SRTM v3.0 (SRTMGL1) via LP DAAC"
+    result["provenance"] = {
+        "provider": "NASA SRTMGL1",
+        "product": "SRTMGL1.003",
+        "synthetic": False,
+    }
 
     with open(output_path, "w") as f:
         json.dump(result, f, indent=2)

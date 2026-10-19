@@ -137,9 +137,7 @@ def run_pipeline(regions: list, skip_srtm: bool = False) -> dict:
                     "category": cat,
                     "surge_ft": result.surge_height_ft,
                     "area_km2": result.area_km2,
-                    "population_exposed": result.population_exposed,
-                    "hospitals_at_risk": result.hospitals_at_risk,
-                    "fei": result.fei_score,
+                    "pct_land_inundated": result.pct_land_inundated,
                 }
                 region_summary["surge_scenarios"].append(scenario_summary)
 
@@ -153,8 +151,8 @@ def run_pipeline(regions: list, skip_srtm: bool = False) -> dict:
                     json.dump(result_dict, f, indent=2)
 
                 region_summary["files"].append(str(out_path))
-                print(f"        CAT {cat}: {result.area_km2} km² | "
-                      f"{result.population_exposed:,} exposed")
+                    print(f"        CAT {cat}: {result.area_km2} km² | "
+                        f"{result.pct_land_inundated}% of valid land")
             except Exception as e:
                 region_summary["errors"].append(f"CAT{cat} surge error: {e}")
                 print(f"        CAT {cat}: ✗ Error — {e}")
