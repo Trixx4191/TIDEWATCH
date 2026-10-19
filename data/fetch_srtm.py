@@ -33,7 +33,7 @@ REGIONS = {
     "gulf_coast":  {"bbox": [-94.0, 28.5, -88.0, 31.5], "name": "Gulf Coast (LA/MS)"},
     "atlantic":    {"bbox": [-75.5, 38.5, -73.5, 41.5], "name": "Atlantic (NY/NJ)"},
     "florida":     {"bbox": [-82.5, 24.5, -79.5, 27.5], "name": "Florida Peninsula"},
-    "pacific":     {"bbox": [-122.5, 37.0, -117.5, 34.0], "name": "Pacific Coast (CA)"},
+    "pacific":     {"bbox": [-122.5, 34.0, -117.5, 37.0], "name": "Pacific Coast (CA)"},
     "caribbean":   {"bbox": [-67.5, 17.5, -65.0, 18.8], "name": "Caribbean Basin"},
     "bay_of_bengal": {"bbox": [88.0, 21.0, 92.5, 24.5], "name": "Bay of Bengal"},
 }
@@ -75,8 +75,7 @@ def download_tile(tile_name: str, session: requests.Session) -> np.ndarray | Non
     """
     Download a single SRTM tile and return as numpy array.
 
-    In production this downloads the actual .hgt file from LP DAAC.
-    For development/demo, returns a realistic synthetic elevation grid.
+    Returns None when the tile cannot be downloaded or parsed.
 
     Args:
         tile_name: SRTM tile identifier e.g. "N29W090"
@@ -100,15 +99,15 @@ def download_tile(tile_name: str, session: requests.Session) -> np.ndarray | Non
                 print(f"    ✓ Downloaded {tile_name} ({elevation.shape})")
                 return elevation
             except Exception as exc:
-                print(f"    ⚠ Failed to parse {tile_name}: {exc}, using synthetic data")
-                return _synthetic_elevation(tile_name)
+                print(f"    ⚠ Failed to parse {tile_name}: {exc}")
+                return None
         else:
-            print(f"    ⚠ HTTP {response.status_code} for {tile_name}, using synthetic data")
-            return _synthetic_elevation(tile_name)
+            print(f"    ⚠ HTTP {response.status_code} for {tile_name}")
+            return None
 
     except Exception as e:
-        print(f"    ⚠ Download failed ({e}), using synthetic data")
-        return _synthetic_elevation(tile_name)
+        print(f"    ⚠ Download failed ({e})")
+        return None
 
 
 def _read_hgt_from_bytes(raw: bytes) -> np.ndarray:
