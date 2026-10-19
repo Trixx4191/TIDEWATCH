@@ -29,10 +29,15 @@ const regionsRouter = require("./routes/regions");
 // ── APP INIT ─────────────────────────────────────────────────────────────────
 const app  = express();
 const PORT = process.env.PORT || 3000;
+const CORS_ORIGINS = (process.env.CORS_ORIGINS || "")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
 
 // ── MIDDLEWARE ────────────────────────────────────────────────────────────────
+app.disable("x-powered-by");
 app.use(cors({
-  origin: "*",
+  origin: CORS_ORIGINS.length ? CORS_ORIGINS : false,
   methods: ["GET"],
   allowedHeaders: ["Content-Type", "Accept"],
 }));
@@ -62,6 +67,10 @@ app.get("/api/health", (req, res) => {
     uptime_s:  Math.floor(process.uptime()),
     endpoints: ["/api/surge", "/api/storms", "/api/tides", "/api/regions", "/api/health"],
   });
+});
+
+app.get("/api/*", (req, res) => {
+  res.status(404).json({ error: "API endpoint not found", path: req.path });
 });
 
 // ── CATCH-ALL: serve frontend SPA ────────────────────────────────────────────

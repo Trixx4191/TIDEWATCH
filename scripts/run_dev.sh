@@ -18,12 +18,6 @@ echo -e "${CYAN}║  🌊  TIDEWATCH — DEV MODE                 ║${RESET}"
 echo -e "${CYAN}╚══════════════════════════════════════════╝${RESET}"
 echo ""
 
-# Check .env exists
-if [ ! -f .env ]; then
-  echo -e "${AMBER}⚠ No .env found — copying from .env.example${RESET}"
-  cp .env.example .env
-fi
-
 # Check node_modules
 if [ ! -d node_modules ]; then
   echo -e "${AMBER}Installing Node dependencies...${RESET}"

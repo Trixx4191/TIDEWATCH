@@ -59,6 +59,10 @@ function run() {
   assert.equal(health.statusCode, 200);
   assert.equal(health.body.status, "operational");
 
+  const unknownApiRoute = invokeAppRoute("/api/*");
+  assert.equal(unknownApiRoute.statusCode, 404);
+  assert.equal(unknownApiRoute.body.error, "API endpoint not found");
+
   const regions = invokeRouter(regionsRouter, "/");
   assert.equal(regions.statusCode, 200);
   assert.equal(regions.body.count, 6);

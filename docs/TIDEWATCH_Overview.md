@@ -9,14 +9,14 @@ related: ["[[Methodology]]", "[[Equity_Analysis]]", "[[Data_Sources]]", "[[NASA_
 
 ## What Is TIDEWATCH?
 
-TIDEWATCH is an open-source coastal flood vulnerability platform that fuses
-three authoritative geophysical datasets to compute storm surge inundation
-risk at 30-meter resolution for six of the world's most exposed coastal regions.
+TIDEWATCH is an early-stage coastal screening prototype. Its active dashboard
+loads configured regions and requests scenario, tide, and historical storm data
+from an Express API. Outputs are shown only when the API has verified source
+metadata; population, asset, and equity analysis are not implemented.
 
 > [!NOTE]
-> TIDEWATCH is designed to be actionable for three audiences simultaneously:
-> NASA Earth science reviewers, FEMA regional emergency managers, and
-> environmental justice researchers.
+> This prototype is not an operational forecast or a substitute for FEMA,
+> NOAA SLOSH, or other validated emergency-management tools.
 
 ---
 
@@ -25,14 +25,11 @@ risk at 30-meter resolution for six of the world's most exposed coastal regions.
 ```mermaid
 graph TD
     A[NASA Earthdata API\nSRTM v3.0 DEM] --> D[Python Data Pipeline]
-    B[NASA OPeNDAP\nMODIS SST] --> D
     C[NOAA CO-OPS API\nTidal Gauges + HURDAT2] --> D
     D --> E[Processed JSON\ndata/processed/]
     E --> F[Express.js Backend\nREST API :3000]
     F --> G[HTML5 Canvas Frontend\nfrontend/index.html]
-    G --> H[FEMA Director\nVisualization]
-    G --> I[Researcher\nEquity Analysis]
-    G --> J[Public\nAwareness]
+    G --> H[Screening Visualization]
 ```
 
 ---
@@ -44,32 +41,31 @@ flowchart LR
     A[fetch_srtm.py] --> E[build_dataset.py]
     B[fetch_noaa_tides.py] --> E
     C[fetch_hurricane_tracks.py] --> E
-    D[MODIS SST fetch] --> E
     E --> F[process_surge_model.py]
     F --> G[elevation_region.json]
     F --> H[tides_region.json]
     F --> I[tracks_region.json]
     G & H & I --> J[Express API]
-    J --> K[Canvas Dashboard]
+    J --> K[Leaflet Dashboard]
 ```
 
 ---
 
-## Key Metrics by Region
+## Current Coverage
 
-| Region | FEI Score | Pop @ CAT5 | Benchmark |
+| Region | Configured tide stations | HURDAT2 archive |
 |---|---|---|---|
-| Gulf Coast | 187 | 2.1M | Katrina 2005 |
-| Atlantic | 142 | 890K | Sandy 2012 |
-| Florida | 156 | 1.4M | Ian 2022 |
-| Pacific CA | 118 | 340K | 1983 ENSO |
-| Caribbean | 201 | 680K | Maria 2017 |
-| Bay of Bengal | **312** | **8.4M** | 1991 Cyclone |
+| Gulf Coast | Yes | Atlantic |
+| Atlantic | Yes | Atlantic |
+| Florida | Yes | Atlantic |
+| Pacific CA | Yes | Eastern Pacific |
+| Caribbean | Yes | Atlantic |
+| Bay of Bengal | No | Not covered |
 
-> [!WARNING]
-> The Bay of Bengal FEI score of 312 indicates that low-income communities
-> face 3.1× the flood exposure of the regional average. This is the highest
-> environmental injustice score in the TIDEWATCH dataset.
+The surge model reports inundated area from an approximately 300m subsampled
+elevation grid. It does not produce population exposure, critical-asset counts,
+or FEI scores. SRTM downloads, tide observations, and track archives can be
+unavailable; the API reports those cases instead of substituting sample results.
 
 ---
 

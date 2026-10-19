@@ -133,7 +133,7 @@ function renderTides(data) {
       fillColor: "#006d77",
       fillOpacity: 0.9,
     });
-    marker.bindPopup(`${station.name} · ${station.station_id} · MHHW ${station.mhhw_baseline} ft`);
+    marker.bindPopup(`${station.name} · ${station.station_id} · Mean level ${station.mean_level_above_mhhw_ft} ft above MHHW`);
     marker.addTo(mapLayers.tides);
 
     const item = document.createElement("div");
@@ -148,8 +148,8 @@ function renderTides(data) {
     }
     stationList.append(item);
   }
-  const baseline = data.stations[0].mhhw_baseline;
-  setText("m-tidal", Number.isFinite(baseline) ? `${baseline.toFixed(2)}` : "Unavailable");
+  const meanLevel = data.stations[0].mean_level_above_mhhw_ft;
+  setText("m-tidal", Number.isFinite(meanLevel) ? `${meanLevel.toFixed(2)}` : "Unavailable");
 }
 
 function renderStorms(data) {

@@ -8,67 +8,47 @@
   |_| |___|____/|_____|  \_/\_/_/   \_|_| \____|_| |_|
 
   Coastal Flood Vulnerability Atlas
-  NASA SRTM · MODIS SST · NOAA Tidal Gauges · HURDAT2
+  NASA SRTM · NOAA CO-OPS · NOAA HURDAT2
 ```
 
-> **Fusing NASA SRTM elevation data, MODIS sea surface temperatures, and NOAA
-> tidal gauge history to map coastal flood risk globally — with real-time
-> hurricane track overlays and environmental justice analysis.**
+> A screening dashboard for coastal elevation, hypothetical surge thresholds,
+> NOAA water-level records, and historical NOAA HURDAT2 storm tracks.
 
 ---
 
 ## Mission Statement
 
-Coastal flooding is the deadliest and most economically destructive natural
-hazard on Earth. Between 1980 and 2023, coastal flood events caused over
-$1.3 trillion in damages and claimed more than 250,000 lives globally. Yet
-the communities most exposed — low-lying, low-income, under-resourced — are
-precisely those least equipped to model, anticipate, or recover from these
-events. Existing tools like FEMA's HAZUS and NOAA's SLOSH are powerful but
-opaque, requiring specialist training and institutional access.
+TIDEWATCH currently provides a Leaflet dashboard and Express API for six
+configured study regions. Its Python pipeline downloads SRTM elevation,
+NOAA CO-OPS station observations where stations are configured, and NOAA
+HURDAT2 tracks for Atlantic and Eastern Pacific regions. A connected low-
+elevation flood-fill computes scenario area from the downloaded elevation
+grid using representative category surge heights and an interpolated IPCC
+AR6 intermediate sea-level-rise table.
 
-TIDEWATCH is an open-source scientific platform that democratizes coastal
-flood vulnerability analysis. By fusing three authoritative geophysical
-datasets — NASA's Shuttle Radar Topography Mission (SRTM) digital elevation
-model, MODIS-derived sea surface temperature anomalies, and NOAA's 150-station
-tidal gauge network — TIDEWATCH computes inundation risk at 30-meter spatial
-resolution for six of the world's most vulnerable coastal regions. Users can
-simulate storm surge scenarios from Category 1 through Category 5, project
-inundation boundaries under IPCC AR6 sea level rise pathways through 2100,
-and overlay real historical hurricane tracks from the HURDAT2 best-track
-database.
-
-Critically, TIDEWATCH incorporates an environmental justice framework through
-its Flood Equity Index (FEI), which quantifies the disproportionate flood
-exposure borne by low-income communities. This metric — derived from spatial
-intersection of inundation polygons with US Census ACS income data — reveals
-a consistent and alarming pattern: the communities with the fewest resources
-to prepare, respond, and recover are systematically the most exposed. The
-Bay of Bengal region returns an FEI of 312, meaning low-income communities
-face 3.1× the flood exposure of the regional average. This is not an accident
-of geography. It is a measurable injustice that demands policy response.
+This is a screening visualization, not an operational forecast. The project
+does not currently calculate population exposure, critical-asset exposure,
+Flood Equity Index (FEI), MODIS SST anomalies, or live storm advisories.
+Unverified and synthetic processed files are rejected by the API rather
+than presented as observations.
 
 ---
 
-## Key Findings
+## Current Data
 
-- **Gulf Coast (LA/MS):** Katrina-scale surge (27.8 ft) would expose 2.1 million
-  people; 38% of inundated land falls in low-income census tracts (FEI: 187)
-- **Bay of Bengal:** Highest environmental injustice score in the dataset (FEI: 312);
-  8.4 million people at risk under a Category 5 equivalent event
-- **Florida Peninsula:** Ian 2022 benchmark surge (18.3 ft) threatens 41 hospitals
-  and 1.4 million residents on dual coastlines simultaneously
-- **Pacific Coast:** Underappreciated risk — 1m of SLR by 2100 exposes 340,000
-  Californians even without a major storm event
-- **Caribbean Basin:** Maria 2017 demonstrated that small-island surge (21.4 ft)
-  can eliminate critical infrastructure entirely; FEI of 201 reflects near-total
-  overlap of flood zones with low-income communities
+| Input | Current implementation | Limitations |
+|---|---|---|
+| NASA SRTM | Downloads native 30m tiles and subsamples them | Analysis grid is approximately 300m; credentials/network access may be required |
+| NOAA CO-OPS | Fetches recent hourly water levels for configured US stations | Five-year window; no configured Bay of Bengal stations |
+| NOAA NHC | Fetches and parses Atlantic/Eastern Pacific HURDAT2 archives | Historical tracks only; no real-time advisory feed or Bay of Bengal coverage |
+| IPCC AR6 | Interpolates the configured SSP2-4.5 values | Representative table values; not a location-specific projection |
 
----
+Population, census, infrastructure, MODIS SST, and FEMA layers are not wired
+into the current application.
 
 ## Live Demo
 
-🔗 https://tidewatch.app *(deploy instructions below)*
+Run the backend locally and open `http://localhost:3000`.
 
 ---
 
@@ -76,12 +56,9 @@ of geography. It is a measurable injustice that demands policy response.
 
 | Source | Dataset | Resolution | Frequency | Access |
 |---|---|---|---|---|
-| NASA Earthdata | SRTM v3.0 DEM | 30m | Static | earthdata.nasa.gov API |
-| MODIS Terra/Aqua | Level-3 SST | 4km daily | Daily | NASA OPeNDAP |
+| NASA Earthdata | SRTM v3.0 DEM | 30m native, ~300m analysis grid | Static | earthdata.nasa.gov API |
 | NOAA CO-OPS | Tidal Gauge Network | Station | 6-min | tidesandcurrents.noaa.gov |
 | NOAA NHC | HURDAT2 Best Track | Storm/6hr | Annual | nhc.noaa.gov/data |
-| US Census Bureau | ACS 5-Year B19013 | Census tract | Annual | api.census.gov |
-| FEMA | NFIP Flood Zone Maps | Vector polygon | Periodic | msc.fema.gov |
 
 ---
 
@@ -109,13 +86,13 @@ npm install
 ```
 
 ### Environment Variables
-Copy `.env.example` to `.env` and fill in:
+Optional environment variables for authenticated data access and server setup:
 ```
 NASA_EARTHDATA_USER=your_username
 NASA_EARTHDATA_PASS=your_password
 NOAA_API_KEY=your_noaa_token
-CENSUS_API_KEY=your_census_key
 PORT=3000
+CORS_ORIGINS=https://your-frontend.example
 CACHE_TTL_SECONDS=3600
 ```
 
@@ -127,61 +104,80 @@ CACHE_TTL_SECONDS=3600
 # Build all datasets (run once, takes ~15 min)
 python data/build_dataset.py
 
-# Start backend API
-node backend/server.js
+# Start the API and frontend on the same origin
+npm start
 
-# Open frontend
-open frontend/index.html
-# or serve it:
-npx serve frontend/
+# Open http://localhost:3000
 ```
+
+---
+
+## Deployment
+
+The repository includes a production Docker image. Build and run it with:
+
+```bash
+docker build -t tidewatch:local .
+docker run --rm --name tidewatch -p 3000:3000 tidewatch:local
+```
+
+The container serves both the dashboard and API. Its health check calls
+`/api/health`. Same-origin access is the default; set `CORS_ORIGINS` to a
+comma-separated allowlist only when a separate frontend origin is required.
+
+The image deliberately excludes `.env`, downloaded data, and
+`data/processed/`. The API will report those sources unavailable until verified
+datasets are supplied. To mount a separately prepared dataset directory:
+
+```bash
+docker run --rm -p 3000:3000 \
+  -v /path/to/verified-processed:/app/data/processed:ro \
+  tidewatch:local
+```
+
+Only mount data with validated provider provenance. Local generated files may
+be stale or synthetic and are not suitable as deployment data.
 
 ---
 
 ## Scientific Methodology
 
 ### Elevation Model
-NASA SRTM v3.0 provides void-filled 30-meter resolution terrain data derived
-from the 2000 Space Shuttle radar mission. TIDEWATCH downloads tiles covering
-each region's bounding box, merges them using GDAL, and reprojects to WGS84
-geographic coordinates. Elevation values are converted from meters to feet for
-US-standard surge comparisons.
+The fetcher downloads SRTM HGT tiles, merges and subsamples them by taking
+every tenth source pixel, then converts valid elevations from meters to feet.
+The resulting grid is roughly 300m spacing. It does not currently run GDAL
+reprojection or guarantee 30m analysis resolution.
 
 ### Inundation Model
-TIDEWATCH implements a coastal flood-fill bathtub model. The core formula:
-a pixel is inundated if `elevation_ft ≤ surge_height_ft + SLR_offset_ft` AND
-the pixel is hydrologically connected to the ocean via a flood-fill traversal
-starting from coastline pixels. This is more physically accurate than a pure
-elevation threshold, which would incorrectly flood inland depressions.
+TIDEWATCH uses fixed representative surge thresholds for Categories 1–5 and
+adds the interpolated SLR offset. Its flood-fill starts from NoData cells on
+the elevation-grid boundary and traverses connected cells below the threshold.
+This is a simplified screening calculation, not a hydrodynamic surge model.
 
 ### Sea Surface Temperature
-MODIS Level-3 4km daily SST composites are downloaded via NASA OPeNDAP.
-Anomaly values represent deviation from the 1985–2012 climatological baseline.
-SST anomalies >+0.5°C in the main development region (MDR: 10°N–20°N,
-20°W–80°W) correlate strongly with hurricane intensification potential,
-following Emanuel (1987) and Webster et al. (1995).
+MODIS SST acquisition and anomaly calculation are not implemented.
 
-### Tidal Baseline
-All surge heights are measured above Mean Higher High Water (MHHW), the
-standard NOAA tidal datum. MHHW values are computed from 19-year tidal epoch
-data at each CO-OPS gauge station.
+### Tidal Observations
+The tide fetcher requests water levels using the NOAA MHHW datum and reports
+annual maxima plus the average observed level over the retrieved years. It does
+not calculate the station's official 19-year MHHW datum.
 
 ### Sea Level Rise Scenarios
-IPCC AR6 Table 9.9 intermediate scenario: +0.3m by 2050, +0.56m by 2075,
-+1.0m by 2100. High scenario: +1.0m by 2075, +1.8m by 2100.
+The implementation linearly interpolates its configured SSP2-4.5 values from
+2024 through 2100; it does not implement the low or high scenarios.
 
 ---
 
 ## Regions Covered
 
-| Region | Benchmark Storm | Max Surge | Pop @ CAT5 | FEI Score |
-|---|---|---|---|---|
-| Gulf Coast (LA/MS) | Katrina 2005 | 27.8 ft | 2,100,000 | 187 |
-| Atlantic (NY/NJ) | Sandy 2012 | 14.1 ft | 890,000 | 142 |
-| Florida Peninsula | Ian 2022 | 18.3 ft | 1,400,000 | 156 |
-| Pacific Coast (CA) | 1983 ENSO | 6.2 ft | 340,000 | 118 |
-| Caribbean Basin | Maria 2017 | 21.4 ft | 680,000 | 201 |
-| Bay of Bengal | 1991 Cyclone | 20.1 ft | 8,400,000 | 312 |
+| Region | NOAA tide stations | HURDAT2 archive |
+|---|---|---|
+| Gulf Coast | Configured | Atlantic |
+| Atlantic | Configured | Atlantic |
+| Florida | Configured | Atlantic |
+| Pacific | Configured | Eastern Pacific |
+| Caribbean | Configured | Atlantic |
+| Bay of Bengal | Not available from CO-OPS | Not covered |
 
 ---
 
@@ -209,7 +205,7 @@ IPCC AR6 Table 9.9 intermediate scenario: +0.3m by 2050, +0.56m by 2075,
   year      = {2026},
   publisher = {GitHub},
   url       = {https://github.com/Trixx4191/TIDEWATCH.git},
-  note      = {NASA SRTM + MODIS SST + NOAA Tidal Gauge fusion platform}
+  note      = {SRTM elevation, NOAA CO-OPS water levels, and HURDAT2 tracks}
 }
 ```
 
@@ -217,11 +213,9 @@ IPCC AR6 Table 9.9 intermediate scenario: +0.3m by 2050, +0.56m by 2075,
 
 ## Acknowledgements
 
-NASA Earthdata for SRTM v3.0 and MODIS SST access. NOAA Center for
-Operational Oceanographic Products and Services (CO-OPS) for tidal gauge
-data. NOAA National Hurricane Center for HURDAT2. US Census Bureau for
-ACS income data. FEMA for NFIP flood zone shapefiles. IPCC Working Group I
-for AR6 sea level rise projections.
+NASA Earthdata for SRTM; NOAA CO-OPS for water-level observations; NOAA
+National Hurricane Center for HURDAT2; and IPCC Working Group I for AR6
+sea-level projections.
 
 ---
 
