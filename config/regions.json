@@ -1,0 +1,84 @@
+{
+  "_comment": "Single source of truth for study regions. Read by the Python pipeline (data/common.py) and the Express API (backend/routes/regions.js). bbox = [min_lon, min_lat, max_lon, max_lat] in WGS84 degrees. Station IDs verified against the NOAA CO-OPS metadata API (mdapi) on 2026-10-20. census.provider: us_census (2020 blocks via TIGERweb + ACS 5-year tracts) or none.",
+  "regions": {
+    "gulf_coast": {
+      "name": "Gulf Coast (Louisiana / Mississippi)",
+      "short": "Gulf Coast",
+      "bbox": [-94.0, 28.5, -88.0, 31.5],
+      "storm_source": { "provider": "hurdat2", "basin": "atlantic", "buffer_nm": 100 },
+      "stations": [
+        { "id": "8761724", "name": "Grand Isle, LA", "lat": 29.2633, "lon": -89.9573 },
+        { "id": "8760922", "name": "Pilots Station East, S.W. Pass, LA", "lat": 28.9322, "lon": -89.4075 },
+        { "id": "8741533", "name": "Pascagoula NOAA Lab, MS", "lat": 30.3678, "lon": -88.5631 },
+        { "id": "8735180", "name": "Dauphin Island, AL", "lat": 30.25, "lon": -88.075 }
+      ],
+      "census": { "provider": "us_census" }
+    },
+    "atlantic": {
+      "name": "Atlantic Seaboard (New York / New Jersey)",
+      "short": "Atlantic NJ/NY",
+      "bbox": [-75.5, 38.5, -73.5, 41.5],
+      "storm_source": { "provider": "hurdat2", "basin": "atlantic", "buffer_nm": 100 },
+      "stations": [
+        { "id": "8518750", "name": "The Battery, NY", "lat": 40.7006, "lon": -74.0142 },
+        { "id": "8531680", "name": "Sandy Hook, NJ", "lat": 40.4669, "lon": -74.0094 },
+        { "id": "8516945", "name": "Kings Point, NY", "lat": 40.8103, "lon": -73.7649 },
+        { "id": "8530973", "name": "Robbins Reef, NJ", "lat": 40.6584, "lon": -74.0647 }
+      ],
+      "census": { "provider": "us_census" }
+    },
+    "florida": {
+      "name": "Florida Peninsula",
+      "short": "Florida",
+      "bbox": [-82.5, 24.5, -79.5, 27.5],
+      "storm_source": { "provider": "hurdat2", "basin": "atlantic", "buffer_nm": 100 },
+      "stations": [
+        { "id": "8723970", "name": "Vaca Key, FL", "lat": 24.711, "lon": -81.1065 },
+        { "id": "8725110", "name": "Naples, FL", "lat": 26.1317, "lon": -81.8075 },
+        { "id": "8722670", "name": "Lake Worth Pier, FL", "lat": 26.6128, "lon": -80.0342 },
+        { "id": "8723214", "name": "Virginia Key, FL", "lat": 25.7314, "lon": -80.1618 }
+      ],
+      "census": { "provider": "us_census" }
+    },
+    "pacific": {
+      "name": "Pacific Coast (California)",
+      "short": "Pacific CA",
+      "bbox": [-122.5, 34.0, -117.5, 37.0],
+      "storm_source": { "provider": "hurdat2", "basin": "pacific", "buffer_nm": 150 },
+      "stations": [
+        { "id": "9413450", "name": "Monterey, CA", "lat": 36.605, "lon": -121.888 },
+        { "id": "9412110", "name": "Port San Luis, CA", "lat": 35.1689, "lon": -120.7542 },
+        { "id": "9411340", "name": "Santa Barbara, CA", "lat": 34.4046, "lon": -119.6925 },
+        { "id": "9410840", "name": "Santa Monica, CA", "lat": 34.0083, "lon": -118.5 }
+      ],
+      "census": { "provider": "us_census" }
+    },
+    "caribbean": {
+      "name": "Caribbean Basin (Puerto Rico / USVI)",
+      "short": "Caribbean",
+      "bbox": [-67.5, 17.5, -64.5, 18.8],
+      "storm_source": { "provider": "hurdat2", "basin": "atlantic", "buffer_nm": 100 },
+      "stations": [
+        { "id": "9755371", "name": "San Juan, PR", "lat": 18.459, "lon": -66.1164 },
+        { "id": "9759110", "name": "Magueyes Island, PR", "lat": 17.9701, "lon": -67.0464 },
+        { "id": "9751639", "name": "Charlotte Amalie, VI", "lat": 18.3306, "lon": -64.9258 },
+        { "id": "9751364", "name": "Christiansted Harbor, St Croix, VI", "lat": 17.7477, "lon": -64.6984 }
+      ],
+      "census": {
+        "provider": "us_census",
+        "note": "Puerto Rico covered by 2020 Census and ACS; USVI blocks lack ACS data"
+      }
+    },
+    "bay_of_bengal": {
+      "name": "Bay of Bengal (Bangladesh Delta)",
+      "short": "Bay of Bengal",
+      "bbox": [88.0, 21.0, 92.5, 24.5],
+      "storm_source": { "provider": "ibtracs", "basin": "NI", "buffer_nm": 100 },
+      "stations": [],
+      "census": {
+        "provider": "none",
+        "note": "outside U.S. Census coverage"
+      }
+    }
+  }
+}

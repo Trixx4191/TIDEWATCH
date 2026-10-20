@@ -1,99 +1,107 @@
 {
-  "generated_at": "2026-05-11T05:41:55.544995Z",
+  "generated_at": "2026-10-20T01:52:23.880071Z",
   "regions": {
     "gulf_coast": {
       "files": [
-        "data/processed/elevation_gulf_coast.json",
         "data/processed/tides_gulf_coast.json",
-        "data/processed/tracks_gulf_coast.json",
-        "data/processed/surge_gulf_coast_cat1_2024.json",
-        "data/processed/surge_gulf_coast_cat2_2024.json",
-        "data/processed/surge_gulf_coast_cat3_2024.json",
-        "data/processed/surge_gulf_coast_cat4_2024.json",
-        "data/processed/surge_gulf_coast_cat5_2024.json"
+        "data/processed/tracks_gulf_coast.json"
       ],
-      "errors": [],
-      "elapsed_seconds": 174.7,
-      "status": "OK"
+      "errors": [
+        "SRTM fetch error: Failed to obtain any elevation data",
+        "CAT1 surge error: Elevation data for gulf_coast has no verified NASA SRTM provenance",
+        "CAT2 surge error: Elevation data for gulf_coast has no verified NASA SRTM provenance",
+        "CAT3 surge error: Elevation data for gulf_coast has no verified NASA SRTM provenance",
+        "CAT4 surge error: Elevation data for gulf_coast has no verified NASA SRTM provenance",
+        "CAT5 surge error: Elevation data for gulf_coast has no verified NASA SRTM provenance"
+      ],
+      "surge_scenarios": [],
+      "elapsed_seconds": 1912.9,
+      "status": "PARTIAL"
     },
     "atlantic": {
       "files": [
-        "data/processed/elevation_atlantic.json",
-        "data/processed/tides_atlantic.json",
-        "data/processed/tracks_atlantic.json",
-        "data/processed/surge_atlantic_cat1_2024.json",
-        "data/processed/surge_atlantic_cat2_2024.json",
-        "data/processed/surge_atlantic_cat3_2024.json",
-        "data/processed/surge_atlantic_cat4_2024.json",
-        "data/processed/surge_atlantic_cat5_2024.json"
+        "data/processed/tracks_atlantic.json"
       ],
-      "errors": [],
-      "elapsed_seconds": 106.3,
-      "status": "OK"
+      "errors": [
+        "SRTM fetch error: Failed to obtain any elevation data",
+        "Tides fetch error: No NOAA observations returned for Robbins Reef, NJ",
+        "CAT1 surge error: Elevation data for atlantic has no verified NASA SRTM provenance",
+        "CAT2 surge error: Elevation data for atlantic has no verified NASA SRTM provenance",
+        "CAT3 surge error: Elevation data for atlantic has no verified NASA SRTM provenance",
+        "CAT4 surge error: Elevation data for atlantic has no verified NASA SRTM provenance",
+        "CAT5 surge error: Elevation data for atlantic has no verified NASA SRTM provenance"
+      ],
+      "surge_scenarios": [],
+      "elapsed_seconds": 528.4,
+      "status": "PARTIAL"
     },
     "florida": {
       "files": [
-        "data/processed/elevation_florida.json",
         "data/processed/tides_florida.json",
-        "data/processed/tracks_florida.json",
-        "data/processed/surge_florida_cat1_2024.json",
-        "data/processed/surge_florida_cat2_2024.json",
-        "data/processed/surge_florida_cat3_2024.json",
-        "data/processed/surge_florida_cat4_2024.json",
-        "data/processed/surge_florida_cat5_2024.json"
+        "data/processed/tracks_florida.json"
       ],
-      "errors": [],
-      "elapsed_seconds": 120.9,
-      "status": "OK"
+      "errors": [
+        "SRTM fetch error: Failed to obtain any elevation data",
+        "CAT1 surge error: Elevation data for florida has no verified NASA SRTM provenance",
+        "CAT2 surge error: Elevation data for florida has no verified NASA SRTM provenance",
+        "CAT3 surge error: Elevation data for florida has no verified NASA SRTM provenance",
+        "CAT4 surge error: Elevation data for florida has no verified NASA SRTM provenance",
+        "CAT5 surge error: Elevation data for florida has no verified NASA SRTM provenance"
+      ],
+      "surge_scenarios": [],
+      "elapsed_seconds": 498.2,
+      "status": "PARTIAL"
     },
     "pacific": {
       "files": [
         "data/processed/tides_pacific.json",
-        "data/processed/tracks_pacific.json",
-        "data/processed/surge_pacific_cat1_2024.json",
-        "data/processed/surge_pacific_cat2_2024.json",
-        "data/processed/surge_pacific_cat3_2024.json",
-        "data/processed/surge_pacific_cat4_2024.json",
-        "data/processed/surge_pacific_cat5_2024.json"
+        "data/processed/tracks_pacific.json"
       ],
       "errors": [
-        "SRTM fetch error: Failed to obtain any elevation data"
+        "SRTM fetch error: Failed to obtain any elevation data",
+        "CAT1 surge error: Elevation data unavailable for pacific: data/processed/elevation_pacific.json",
+        "CAT2 surge error: Elevation data unavailable for pacific: data/processed/elevation_pacific.json",
+        "CAT3 surge error: Elevation data unavailable for pacific: data/processed/elevation_pacific.json",
+        "CAT4 surge error: Elevation data unavailable for pacific: data/processed/elevation_pacific.json",
+        "CAT5 surge error: Elevation data unavailable for pacific: data/processed/elevation_pacific.json"
       ],
-      "elapsed_seconds": 44.5,
+      "surge_scenarios": [],
+      "elapsed_seconds": 483.6,
       "status": "PARTIAL"
     },
     "caribbean": {
       "files": [
-        "data/processed/elevation_caribbean.json",
         "data/processed/tides_caribbean.json",
-        "data/processed/tracks_caribbean.json",
-        "data/processed/surge_caribbean_cat1_2024.json",
-        "data/processed/surge_caribbean_cat2_2024.json",
-        "data/processed/surge_caribbean_cat3_2024.json",
-        "data/processed/surge_caribbean_cat4_2024.json",
-        "data/processed/surge_caribbean_cat5_2024.json"
+        "data/processed/tracks_caribbean.json"
       ],
-      "errors": [],
-      "elapsed_seconds": 74.9,
-      "status": "OK"
+      "errors": [
+        "SRTM fetch error: Failed to obtain any elevation data",
+        "CAT1 surge error: Elevation data for caribbean has no verified NASA SRTM provenance",
+        "CAT2 surge error: Elevation data for caribbean has no verified NASA SRTM provenance",
+        "CAT3 surge error: Elevation data for caribbean has no verified NASA SRTM provenance",
+        "CAT4 surge error: Elevation data for caribbean has no verified NASA SRTM provenance",
+        "CAT5 surge error: Elevation data for caribbean has no verified NASA SRTM provenance"
+      ],
+      "surge_scenarios": [],
+      "elapsed_seconds": 469.7,
+      "status": "PARTIAL"
     },
     "bay_of_bengal": {
-      "files": [
-        "data/processed/elevation_bay_of_bengal.json",
-        "data/processed/tides_bay_of_bengal.json",
-        "data/processed/tracks_bay_of_bengal.json",
-        "data/processed/surge_bay_of_bengal_cat1_2024.json",
-        "data/processed/surge_bay_of_bengal_cat2_2024.json",
-        "data/processed/surge_bay_of_bengal_cat3_2024.json",
-        "data/processed/surge_bay_of_bengal_cat4_2024.json",
-        "data/processed/surge_bay_of_bengal_cat5_2024.json"
+      "files": [],
+      "errors": [
+        "SRTM fetch error: Failed to obtain any elevation data",
+        "Tides fetch error: No NOAA CO-OPS stations are configured for bay_of_bengal",
+        "Tracks fetch error: HURDAT2 coverage is unavailable for bay_of_bengal",
+        "CAT1 surge error: Elevation data for bay_of_bengal has no verified NASA SRTM provenance",
+        "CAT2 surge error: Elevation data for bay_of_bengal has no verified NASA SRTM provenance",
+        "CAT3 surge error: Elevation data for bay_of_bengal has no verified NASA SRTM provenance",
+        "CAT4 surge error: Elevation data for bay_of_bengal has no verified NASA SRTM provenance",
+        "CAT5 surge error: Elevation data for bay_of_bengal has no verified NASA SRTM provenance"
       ],
-      "errors": [],
-      "elapsed_seconds": 92.3,
-      "status": "OK"
+      "surge_scenarios": [],
+      "elapsed_seconds": 53.5,
+      "status": "PARTIAL"
     }
   },
-  "total_elapsed_seconds": 613.7,
-  "data_status": "stale_unverified",
-  "notice": "Historical pipeline inventory only. Previous scenario outputs contained unverified exposure and equity metrics and have been omitted. Rebuild with verified sources before using results."
+  "total_elapsed_seconds": 3946.2
 }

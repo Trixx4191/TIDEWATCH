@@ -1,6 +1,6 @@
 {
   "name": "tidewatch",
-  "version": "1.0.0",
+  "version": "2.2.0",
   "description": "Coastal flood screening dashboard using SRTM, NOAA water levels, and HURDAT2 tracks",
   "main": "backend/server.js",
   "scripts": {

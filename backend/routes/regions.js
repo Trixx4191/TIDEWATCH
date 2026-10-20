@@ -1,66 +1,36 @@
 "use strict";
 
-const express = require("express");
-const router = express.Router();
-const cache = require("../../utils/cache");
+/**
+ * routes/regions.js — study regions from config/regions.json, the same file
+ * the Python pipeline reads, so bounding boxes cannot drift between them.
+ */
 
-const REGIONS = {
-  gulf_coast: {
-    key: "gulf_coast",
-    name: "Gulf Coast (Louisiana / Mississippi)",
-    short: "Gulf Coast",
-    bbox: [-94.0, 28.5, -88.0, 31.5],
-    centroid: { lat: 29.5, lon: -90.5 },
-  },
-  atlantic: {
-    key: "atlantic",
-    name: "Atlantic Seaboard (New York / New Jersey)",
-    short: "Atlantic NJ/NY",
-    bbox: [-75.5, 38.5, -73.5, 41.5],
-    centroid: { lat: 40.2, lon: -74.0 },
-  },
-  florida: {
-    key: "florida",
-    name: "Florida Peninsula",
-    short: "Florida",
-    bbox: [-82.5, 24.5, -79.5, 27.5],
-    centroid: { lat: 26.0, lon: -81.0 },
-  },
-  pacific: {
-    key: "pacific",
-    name: "Pacific Coast (California)",
-    short: "Pacific CA",
-    bbox: [-122.5, 34.0, -117.5, 37.0],
-    centroid: { lat: 35.5, lon: -120.0 },
-  },
-  caribbean: {
-    key: "caribbean",
-    name: "Caribbean Basin (Puerto Rico / USVI)",
-    short: "Caribbean",
-    bbox: [-67.5, 17.5, -64.5, 18.8],
-    centroid: { lat: 18.0, lon: -66.0 },
-  },
-  bay_of_bengal: {
-    key: "bay_of_bengal",
-    name: "Bay of Bengal (Bangladesh Delta)",
-    short: "Bay of Bengal",
-    bbox: [88.0, 21.0, 92.5, 24.5],
-    centroid: { lat: 22.0, lon: 90.5 },
-  },
-};
+const express = require("express");
+const config = require("../../config/regions.json");
+
+const router = express.Router();
+
+const REGIONS = Object.fromEntries(Object.entries(config.regions).map(([key, region]) => {
+  const [minLon, minLat, maxLon, maxLat] = region.bbox;
+  return [key, {
+    key,
+    name: region.name,
+    short: region.short,
+    bbox: region.bbox,
+    centroid: { lat: (minLat + maxLat) / 2, lon: (minLon + maxLon) / 2 },
+    storm_source: region.storm_source,
+    census: region.census || { provider: "us_census" },
+    stations: region.stations.map(({ id, name, lat, lon }) => ({ id, name, lat, lon })),
+  }];
+}));
 
 router.get("/", (req, res) => {
-  const cacheKey = "regions:all";
-  const cached = cache.get(cacheKey);
-  if (cached) return res.json(cached);
-
-  const payload = {
+  res.setHeader("Cache-Control", "public, max-age=3600");
+  res.json({
     count: Object.keys(REGIONS).length,
     regions: Object.values(REGIONS),
-    source: "TIDEWATCH region configuration",
-  };
-  cache.set(cacheKey, payload, 24 * 60 * 60 * 1000);
-  res.json(payload);
+    source: "TIDEWATCH region configuration (config/regions.json)",
+  });
 });
 
 router.get("/:key", (req, res) => {

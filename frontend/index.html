@@ -9,14 +9,16 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
   <link rel="stylesheet" href="css/main.css">
   <link rel="stylesheet" href="css/app.css">
+  <link rel="stylesheet" href="css/ops.css">
 </head>
 <body>
+  <a class="skip-link" href="#leafletMap">Skip to map</a>
   <header class="header">
     <div class="header-left">
       <div class="logo-name">TIDEWATCH</div>
       <div class="logo-meta">
         <div class="logo-sub">Coastal Data Explorer</div>
-        <div class="logo-sources">NASA GIBS · NOAA CO-OPS · NHC HURDAT2</div>
+        <div class="logo-sources">NASA SRTM · NOAA CO-OPS · NHC HURDAT2 · IBTrACS</div>
       </div>
     </div>
     <div class="header-center">
@@ -25,6 +27,9 @@
     </div>
     <div class="header-right">
       <span id="stormStatus" class="storm-status">TRACK DATA UNAVAILABLE</span>
+      <button type="button" class="hdr-btn" id="dataBtn" title="Build, refresh, import or export data (D)" aria-haspopup="dialog">Data <span class="data-badge" id="dataBadge"></span></button>
+      <button type="button" class="hdr-btn" id="shareBtn" title="Copy a link to this exact view">Share</button>
+      <button type="button" class="hdr-btn" id="helpBtn" title="Help, shortcuts and data sources (?)" aria-haspopup="dialog">Help</button>
     </div>
   </header>
 
@@ -36,33 +41,70 @@
       </section>
       <section class="sidebar-section">
         <div class="section-label">MAP LAYER</div>
-        <label class="select-label" for="earthTileSelect">NASA GIBS BASEMAP</label>
+        <label class="select-label" for="earthTileSelect">BASEMAP</label>
         <select class="tw-select" id="earthTileSelect">
-          <option value="MODIS_Terra_CorrectedReflectance_TrueColor">MODIS Terra true color (yesterday)</option>
-          <option value="VIIRS_SNPP_CorrectedReflectance_TrueColor">VIIRS SNPP true color</option>
-          <option value="BlueMarble_ShadedRelief_Bathymetry" selected>Blue Marble relief</option>
+          <optgroup label="High resolution">
+            <option value="esri_imagery" selected>Satellite imagery + labels (Esri)</option>
+            <option value="esri_topo">Topographic (Esri)</option>
+            <option value="esri_ocean">Ocean bathymetry (Esri)</option>
+            <option value="carto_light">Light reference (CARTO)</option>
+            <option value="carto_dark">Dark reference (CARTO)</option>
+          </optgroup>
+          <optgroup label="NASA GIBS (coarse, ≤ zoom 9)">
+            <option value="MODIS_Terra_CorrectedReflectance_TrueColor">MODIS Terra true color (yesterday)</option>
+            <option value="VIIRS_SNPP_CorrectedReflectance_TrueColor">VIIRS SNPP true color</option>
+            <option value="BlueMarble_ShadedRelief_Bathymetry">Blue Marble relief</option>
+          </optgroup>
         </select>
+      </section>
+      <section class="sidebar-section" id="overlaySection">
+        <div class="section-label">OVERLAYS</div>
+        <div class="toggle-list" id="overlayToggles">
+          <label class="tw-check"><input type="checkbox" data-overlay="flood" checked> Flood depth</label>
+          <label class="tw-check"><input type="checkbox" data-overlay="storms" checked> Storm tracks</label>
+          <label class="tw-check"><input type="checkbox" data-overlay="gauges" checked> Tide gauges</label>
+          <label class="tw-check"><input type="checkbox" data-overlay="population"> Population density (2020 Census)</label>
+          <label class="tw-check"><input type="checkbox" data-overlay="outline" checked> Study-region outline</label>
+          <label class="tw-check"><input type="checkbox" data-overlay="labels" checked> Basemap labels</label>
+        </div>
+        <label class="select-label" for="opacitySlider">FLOOD OPACITY <span id="opacityValue">78%</span></label>
+        <input type="range" class="tw-range" id="opacitySlider" min="10" max="100" step="5" value="78">
+        <div class="select-label">DEPTH BANDS</div>
+        <div class="depth-chips" id="depthChips" role="group" aria-label="Show or hide depth bands"></div>
       </section>
       <section class="sidebar-section">
         <div class="section-label">SCENARIO INPUTS</div>
         <div class="scenario-btns" id="scenarioBtns" role="group" aria-label="Storm category">
-           <button class="scenario-btn active" data-cat="1"><span>CAT 1</span><small>4 ft</small></button>
-           <button class="scenario-btn" data-cat="2"><span>CAT 2</span><small>8 ft</small></button>
-           <button class="scenario-btn" data-cat="3"><span>CAT 3</span><small>12 ft</small></button>
-           <button class="scenario-btn" data-cat="4"><span>CAT 4</span><small>18 ft</small></button>
-           <button class="scenario-btn" data-cat="5"><span>CAT 5</span><small>28 ft</small></button>
+           <button class="scenario-btn active" data-cat="1" aria-pressed="true"><span>CAT 1</span><small data-surge-ft="5">5 ft</small></button>
+           <button class="scenario-btn" data-cat="2" aria-pressed="false"><span>CAT 2</span><small data-surge-ft="8">8 ft</small></button>
+           <button class="scenario-btn" data-cat="3" aria-pressed="false"><span>CAT 3</span><small data-surge-ft="12">12 ft</small></button>
+           <button class="scenario-btn" data-cat="4" aria-pressed="false"><span>CAT 4</span><small data-surge-ft="18">18 ft</small></button>
+           <button class="scenario-btn" data-cat="5" aria-pressed="false"><span>CAT 5</span><small data-surge-ft="28">28 ft</small></button>
         </div>
-        <label class="select-label" for="slrSlider">IPCC AR6 SSP2-4.5 YEAR</label>
-        <input class="tw-slider" type="range" id="slrSlider" min="2024" max="2100" step="1" value="2024">
-        <div class="slider-bounds"><span>2024</span><span id="slrYear">2024</span><span>2100</span></div>
+        <label class="select-label" for="slrSlider">IPCC AR6 SSP2-4.5 CHECKPOINT</label>
+        <div class="year-row">
+          <button type="button" class="step-btn" id="yearPrev" aria-label="Previous year">‹</button>
+          <select class="tw-select" id="slrSlider">
+            <option value="2024" selected>2024</option>
+            <option value="2030">2030</option>
+            <option value="2040">2040</option>
+            <option value="2050">2050</option>
+            <option value="2060">2060</option>
+            <option value="2075">2075</option>
+            <option value="2090">2090</option>
+            <option value="2100">2100</option>
+          </select>
+          <button type="button" class="step-btn" id="yearNext" aria-label="Next year">›</button>
+        </div>
+        <div class="slider-bounds"><span id="slrYear">2024</span></div>
       </section>
       <section class="sidebar-section">
         <div class="section-label">SCENARIO RESULTS</div>
-        <div class="metric-grid">
+        <div class="metric-grid" id="metricGrid">
           <div class="metric-card danger">
             <div class="metric-label">INUNDATED AREA</div>
             <div class="metric-val" id="m-area">Unavailable</div>
-            <div class="metric-unit">km²</div>
+            <div class="metric-unit" id="m-area-unit">km²</div>
           </div>
           <div class="metric-card caution">
             <div class="metric-label">TOTAL THRESHOLD</div>
@@ -70,20 +112,61 @@
             <div class="metric-unit">surge + sea-level rise</div>
           </div>
           <div class="metric-card safe">
-            <div class="metric-label">VALID LAND INUNDATED</div>
+            <div class="metric-label">ABOVE-MSL LAND INUNDATED</div>
             <div class="metric-val" id="m-pct">Unavailable</div>
-            <div class="metric-unit">of valid elevation cells</div>
+            <div class="metric-unit">of valid above-MSL elevation cells</div>
+          </div>
+          <div class="metric-card danger metric-card--wide" id="peopleCard">
+            <div class="metric-label">RESIDENTS IN FLOODED AREAS (2020 CENSUS)</div>
+            <div class="metric-val" id="m-people">Unavailable</div>
+            <div class="metric-unit" id="m-people-unit">people</div>
           </div>
           <div class="metric-card neutral">
-            <div class="metric-label">MEAN LEVEL ABOVE MHHW</div>
+            <div class="metric-label">MEAN STATION LEVEL ABOVE MHHW</div>
             <div class="metric-val" id="m-tidal">Unavailable</div>
-            <div class="metric-unit">ft, observed-period average</div>
+            <div class="metric-unit" id="m-tidal-unit">ft, unweighted station average</div>
           </div>
         </div>
+      </section>
+      <section class="sidebar-section" id="stormFilterSection">
+        <div class="section-label">STORM FILTERS <span class="section-count" id="stormCount"></span></div>
+        <input type="search" class="tw-input" id="stormSearch" placeholder="Search storm name or ID" aria-label="Search storms by name or ID">
+        <div class="year-range">
+          <label class="select-label" for="stormYearFrom">FROM</label>
+          <input type="number" class="tw-input" id="stormYearFrom" inputmode="numeric" min="1851" max="2100" placeholder="first">
+          <label class="select-label" for="stormYearTo">TO</label>
+          <input type="number" class="tw-input" id="stormYearTo" inputmode="numeric" min="1851" max="2100" placeholder="last">
+        </div>
+        <div class="quick-chips" id="stormQuick" role="group" aria-label="Year presets">
+          <button type="button" class="quick-chip" data-preset="all">All years</button>
+          <button type="button" class="quick-chip" data-preset="1950">Since 1950</button>
+          <button type="button" class="quick-chip" data-preset="1966">Satellite era</button>
+          <button type="button" class="quick-chip" data-preset="30">Last 30 yrs</button>
+        </div>
+        <label class="select-label" for="stormMinClass">STRONGEST NEAR REGION</label>
+        <select class="tw-select" id="stormMinClass">
+          <option value="any">Any intensity</option>
+          <option value="TS">Tropical storm or stronger</option>
+          <option value="C1">Hurricane (Cat 1+)</option>
+          <option value="C3">Major hurricane (Cat 3+)</option>
+        </select>
+        <label class="tw-check"><input type="checkbox" id="stormLandfall"> Landfall inside study region</label>
+        <label class="tw-check"><input type="checkbox" id="stormTropical"> Tropical near region only</label>
+        <button type="button" class="link-btn" id="stormReset">Reset storm filters</button>
+      </section>
+      <section class="sidebar-section">
+        <div class="section-label">DISPLAY</div>
+        <label class="select-label" for="unitSelect">UNITS</label>
+        <select class="tw-select" id="unitSelect">
+          <option value="mixed">Feet + km² (default)</option>
+          <option value="imperial">Imperial (ft, mi²)</option>
+          <option value="metric">Metric (m, km²)</option>
+        </select>
       </section>
       <section class="sidebar-section sidebar-footer">
         <div class="section-label">SOURCE STATUS</div>
         <ul class="source-list" id="sourceList" aria-live="polite"></ul>
+        <button type="button" class="link-btn" id="retryBtn" hidden>Retry loading data</button>
       </section>
     </aside>
     <main class="main-content">
@@ -102,27 +185,82 @@
             <span class="sr-total" id="srTotal">Unavailable</span>
           </div>
           <div class="map-zoom-controls">
-            <button class="zoom-btn" id="zoomIn" aria-label="Zoom in">+</button>
-            <button class="zoom-btn" id="zoomOut" aria-label="Zoom out">−</button>
-            <button class="zoom-btn" id="zoomReset" aria-label="Zoom to region">⌖</button>
+            <button class="zoom-btn" id="zoomIn" aria-label="Zoom in" title="Zoom in (+)">+</button>
+            <button class="zoom-btn" id="zoomOut" aria-label="Zoom out" title="Zoom out (−)">−</button>
+            <button class="zoom-btn" id="zoomReset" aria-label="Zoom to region" title="Zoom to region (R)">⌖</button>
           </div>
         </div>
       </div>
       <div class="map-wrap" id="mapWrap">
-        <div class="leaflet-map" id="leafletMap" aria-label="NASA basemap with verified data overlays"></div>
+        <div class="leaflet-map" id="leafletMap" aria-label="Basemap with verified data overlays" tabindex="0"></div>
+        <div class="map-tools" id="mapTools" role="toolbar" aria-label="Map tools">
+          <button type="button" class="tool-btn" data-tool="inspect" aria-pressed="false" title="Inspect a point: elevation and flood depth (I)">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="6"/><path d="M10 1v5M10 14v5M1 10h5M14 10h5"/></svg><span>Inspect</span></button>
+          <button type="button" class="tool-btn" data-tool="distance" aria-pressed="false" title="Measure distance (M)">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M2 15 15 2l3 3L5 18z"/><path d="M6 11l1.5 1.5M9 8l1.5 1.5M12 5l1.5 1.5"/></svg><span>Distance</span></button>
+          <button type="button" class="tool-btn" data-tool="area" aria-pressed="false" title="Measure area (A)">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 5l8-3 6 6-3 9-10-2z"/></svg><span>Area</span></button>
+          <span class="tool-sep" aria-hidden="true"></span>
+          <button type="button" class="tool-btn" id="fullscreenBtn" title="Fullscreen map (F)">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M2 7V2h5M13 2h5v5M18 13v5h-5M7 18H2v-5"/></svg><span>Fullscreen</span></button>
+          <button type="button" class="tool-btn" id="printBtn" title="Print or save as PDF (P)">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 7V2h10v5M5 15H2V7h16v8h-3"/><path d="M5 12h10v6H5z"/></svg><span>Print</span></button>
+          <button type="button" class="tool-btn" id="overlayDownloadBtn" title="Download flood overlay image">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2v11M5 9l5 5 5-5M3 18h14"/></svg><span>Overlay</span></button>
+        </div>
+        <div class="map-coords" id="mapCoords" aria-hidden="true"></div>
+        <div class="first-run" id="firstRun" hidden></div>
         <div class="map-note" id="mapNote">Overlays appear only when verified source data is available.</div>
       </div>
-      <div class="bottom-panel">
+      <div class="bottom-panel" id="bottomPanel">
         <section class="panel-section panel-section--wide">
-          <div class="panel-label">OBSERVED NOAA WATER-LEVEL MAXIMA</div>
-          <div class="station-list" id="stationList" aria-live="polite">No verified station records loaded.</div>
+          <div class="panel-tabs" role="tablist" aria-label="Analysis panels">
+            <button type="button" role="tab" class="panel-tab" id="tab-stations" data-tab="stations" aria-controls="pane-stations" aria-selected="true">Stations</button>
+            <button type="button" role="tab" class="panel-tab" id="tab-compare" data-tab="compare" aria-controls="pane-compare" aria-selected="false" title="Compare storm categories">Compare</button>
+            <button type="button" role="tab" class="panel-tab" id="tab-trend" data-tab="trend" aria-controls="pane-trend" aria-selected="false" title="Change with sea-level rise">Trend</button>
+            <button type="button" role="tab" class="panel-tab" id="tab-storms" data-tab="storms" aria-controls="pane-storms" aria-selected="false">Storm list</button>
+            <button type="button" role="tab" class="panel-tab" id="tab-people" data-tab="people" aria-controls="pane-people" aria-selected="false">People</button>
+            <span class="panel-tab-spacer"></span>
+            <button type="button" class="link-btn" id="tabExport" title="Export this panel as CSV">CSV</button>
+            <button type="button" class="link-btn" id="tabTableToggle" title="Switch between chart and table" hidden>Table</button>
+            <button type="button" class="icon-btn" id="expandBtn" aria-pressed="false" title="Expand panel">⤢</button>
+          </div>
+          <div class="tab-pane" id="pane-stations" role="tabpanel" aria-labelledby="tab-stations">
+            <div class="panel-label">OBSERVED NOAA WATER-LEVEL MAXIMA</div>
+            <div class="station-list" id="stationList" aria-live="polite">No verified station records loaded.</div>
+          </div>
+          <div class="tab-pane" id="pane-compare" role="tabpanel" aria-labelledby="tab-compare" hidden>
+            <div class="pane-head"><div class="panel-label" id="compareTitle">INUNDATED AREA BY CATEGORY</div><div class="seg measure-toggle" role="group" aria-label="Measure"><button type="button" data-measure="area" aria-pressed="true">Area</button><button type="button" data-measure="people" aria-pressed="false">People</button></div></div>
+            <div class="chart-legend" id="compareLegend"></div>
+            <div class="chart-host" id="compareChart"></div>
+            <div class="table-host" id="compareTable" hidden></div>
+          </div>
+          <div class="tab-pane" id="pane-trend" role="tabpanel" aria-labelledby="tab-trend" hidden>
+            <div class="pane-head"><div class="panel-label" id="trendTitle">INUNDATED AREA BY SEA-LEVEL-RISE YEAR</div><div class="seg measure-toggle" role="group" aria-label="Measure"><button type="button" data-measure="area" aria-pressed="true">Area</button><button type="button" data-measure="people" aria-pressed="false">People</button></div></div>
+            <div class="chart-host" id="trendChart"></div>
+            <div class="table-host" id="trendTable" hidden></div>
+          </div>
+          <div class="tab-pane" id="pane-storms" role="tabpanel" aria-labelledby="tab-storms" hidden>
+            <div class="storm-table-wrap" id="stormTable">No storm tracks loaded.</div>
+          </div>
+          <div class="tab-pane" id="pane-people" role="tabpanel" aria-labelledby="tab-people" hidden>
+            <div id="peoplePane">No census data loaded.</div>
+          </div>
         </section>
         <section class="panel-section">
-          <div class="panel-label">SCENARIO DETAILS</div>
-          <table class="summary-table">
-            <thead><tr><th>METRIC</th><th>VALUE</th></tr></thead>
-            <tbody id="summaryTbody"><tr><td colspan="2">No verified scenario loaded.</td></tr></tbody>
-          </table>
+          <div class="panel-label-row">
+            <div class="panel-label">SCENARIO DETAILS</div>
+            <div class="panel-actions">
+              <button type="button" class="link-btn" id="exportCsvBtn">CSV</button>
+              <button type="button" class="link-btn" id="exportJsonBtn">JSON</button>
+            </div>
+          </div>
+          <div class="summary-scroll">
+            <table class="summary-table">
+              <thead><tr><th>METRIC</th><th>VALUE</th></tr></thead>
+              <tbody id="summaryTbody"><tr><td colspan="2">No verified scenario loaded.</td></tr></tbody>
+            </table>
+          </div>
         </section>
       </div>
     </main>
@@ -134,6 +272,91 @@
     <span class="footer-sep">·</span>
     <a class="footer-link" href="https://github.com/Trixx4191/TIDEWATCH" target="_blank" rel="noopener">SOURCE</a>
   </footer>
+
+  <div class="print-header" id="printHeader" aria-hidden="true"></div>
+
+  <dialog class="tw-dialog tw-dialog--wide" id="dataDialog" aria-labelledby="dataTitle">
+    <div class="tw-dialog-head">
+      <div>
+        <h2 id="dataTitle">Data</h2>
+        <div class="data-mode" id="dataMode"></div>
+      </div>
+      <div class="data-head-right">
+        <div id="dataAuth"></div>
+        <button type="button" class="icon-btn" id="dataClose" aria-label="Close data panel">✕</button>
+      </div>
+    </div>
+    <div class="tw-dialog-tabs" role="tablist" aria-label="Data sections">
+      <button type="button" role="tab" class="panel-tab" data-data-tab="regions" aria-selected="true">Regions</button>
+      <button type="button" role="tab" class="panel-tab" data-data-tab="jobs" aria-selected="false">Jobs</button>
+      <button type="button" role="tab" class="panel-tab" data-data-tab="transfer" aria-selected="false">Import &amp; export</button>
+      <button type="button" role="tab" class="panel-tab" data-data-tab="setup" aria-selected="false">Setup check</button>
+    </div>
+    <div class="tw-dialog-body">
+      <section data-data-pane="regions"></section>
+      <section data-data-pane="jobs" hidden></section>
+      <section data-data-pane="transfer" hidden></section>
+      <section data-data-pane="setup" hidden></section>
+    </div>
+  </dialog>
+
+  <dialog class="tw-dialog" id="helpDialog" aria-labelledby="helpTitle">
+    <div class="tw-dialog-head">
+      <h2 id="helpTitle">TIDEWATCH help</h2>
+      <button type="button" class="icon-btn" id="helpClose" aria-label="Close help">✕</button>
+    </div>
+    <div class="tw-dialog-tabs" role="tablist" aria-label="Help sections">
+      <button type="button" role="tab" class="panel-tab" data-help="guide" aria-selected="true">Quick guide</button>
+      <button type="button" role="tab" class="panel-tab" data-help="keys" aria-selected="false">Shortcuts</button>
+      <button type="button" role="tab" class="panel-tab" data-help="method" aria-selected="false">Method</button>
+      <button type="button" role="tab" class="panel-tab" data-help="data" aria-selected="false">Data &amp; status</button>
+    </div>
+    <div class="tw-dialog-body">
+      <section data-help-pane="guide">
+        <ol class="help-steps">
+          <li><b>Pick a study region</b> in the sidebar. The map zooms to it and loads the flood scenario, tide gauges and historical storm tracks.</li>
+          <li><b>Choose a storm category and sea-level-rise year.</b> The flood-depth overlay, results and details update. Use ‹ › or the arrow keys to step through years.</li>
+          <li><b>Click the map</b> with <b>Inspect</b> on to read ground elevation, flood depth and whether that spot is connected to the sea.</li>
+          <li><b>Filter storms</b> by name, years, strength or landfall. The map and the <i>Storm list</i> tab update together; click a row to zoom to that storm.</li>
+          <li><b>Compare</b> all five categories, or see how flooding grows with sea-level rise, in the bottom tabs. Click a column or point to switch scenario.</li>
+          <li><b>People</b> tab: residents and homes in flooded areas (2020 Census), who they are (ACS estimates), the Flood Equity Index and the most-affected census tracts. Switch Compare/Trend between <i>Area</i> and <i>People</i>.</li>
+          <li><b>Share</b> copies a link to this exact view. Use <b>Print</b>, <b>CSV/JSON</b> or <b>Overlay</b> to take results elsewhere.</li>
+          <li><b>Data</b> (top right) shows what's built for each region. On your own computer, or as a signed-in admin, you can build, refresh or recompute regions, import a ready-made package, and follow progress there.</li>
+        </ol>
+        <p class="help-note">TIDEWATCH is a screening tool: a static, connected-bathtub estimate on a ~90 m elevation grid. It ignores levees, waves and surge dynamics. Do not use it for evacuation or engineering decisions.</p>
+      </section>
+      <section data-help-pane="keys" hidden>
+        <table class="help-keys">
+          <tbody>
+            <tr><td><kbd>1</kbd>–<kbd>5</kbd></td><td>Storm category</td></tr>
+            <tr><td><kbd>←</kbd> <kbd>→</kbd></td><td>Previous / next sea-level-rise year</td></tr>
+            <tr><td><kbd>I</kbd></td><td>Inspect tool</td></tr>
+            <tr><td><kbd>M</kbd> / <kbd>A</kbd></td><td>Measure distance / area (<kbd>Enter</kbd> or double-click to finish)</td></tr>
+            <tr><td><kbd>Esc</kbd></td><td>Cancel tool, clear storm selection, close dialogs</td></tr>
+            <tr><td><kbd>R</kbd></td><td>Zoom to study region</td></tr>
+            <tr><td><kbd>+</kbd> <kbd>−</kbd></td><td>Zoom in / out</td></tr>
+            <tr><td><kbd>F</kbd></td><td>Fullscreen map</td></tr>
+            <tr><td><kbd>L</kbd></td><td>Show / hide legend</td></tr>
+            <tr><td><kbd>P</kbd></td><td>Print / save as PDF</td></tr>
+            <tr><td><kbd>S</kbd></td><td>Copy share link</td></tr>
+            <tr><td><kbd>D</kbd></td><td>Data panel</td></tr>
+            <tr><td><kbd>?</kbd></td><td>This help</td></tr>
+          </tbody>
+        </table>
+      </section>
+      <section data-help-pane="method" hidden>
+        <p><b>Water level</b> (relative to the elevation model's ≈ mean-sea-level datum) = scenario surge above MHHW + the region's MHHW − MSL (NOAA tidal datums) + IPCC AR6 SSP2-4.5 sea-level rise.</p>
+        <p><b>Flooded</b> land is at or below that level <i>and</i> connected to open water (8-neighbour rule). Land below the level but cut off is shown in green as <i>low-lying, not connected</i> and is never counted as flooded.</p>
+        <p><b>Depth bands</b> follow the NHC Potential Storm Surge Flooding map: up to 3 ft, 3–6 ft, 6–9 ft and over 9 ft above ground.</p>
+        <p><b>Scenario surges</b> are the upper bounds of the legacy Saffir-Simpson ranges (5, 8, 12, 18 ft; 28 ft for Cat 5). Real surge depends on storm size, speed, track and bathymetry.</p>
+        <p><b>People</b> = 2020 Census block populations placed on the elevation grid (large blocks spread over their land area) and counted where cells flood. Characteristics are ACS 5-year tract estimates. Counts are rounded to the nearest 10 because 2020 block counts include deliberate privacy noise.</p>
+        <p><b>Limitations:</b> SRTM is a surface model (trees and buildings read high); no levees, drainage, waves, friction or timing; sea-level rise is the global mean (no local subsidence).</p>
+      </section>
+      <section data-help-pane="data" hidden>
+        <div id="helpData">Loading data status…</div>
+      </section>
+    </div>
+  </dialog>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <script type="module" src="js/main.js"></script>
