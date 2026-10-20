@@ -68,7 +68,7 @@ function renderSourceStatus() {
   list.replaceChildren(...sources.map(([name, data]) => {
     const item = document.createElement("li");
     const available = data && data.available !== false && !data.error;
-    item.textContent = `${name}: ${available ? "available" : "unavailable"}`;
+    item.textContent = name;
     item.className = available ? "source-available" : "source-unavailable";
     return item;
   }));
@@ -76,8 +76,10 @@ function renderSourceStatus() {
 
 function setBaseLayer(layerKey) {
   const config = NASA_LAYERS[layerKey] || NASA_LAYERS.MODIS_Terra_CorrectedReflectance_TrueColor;
+  const acquisitionDate = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const time = layerKey === "BlueMarble_ShadedRelief_Bathymetry" ? "default" : acquisitionDate;
   if (state.tileLayer) map.removeLayer(state.tileLayer);
-  const url = `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/${layerKey}/default/default/${config.matrix}/{z}/{y}/{x}.${config.format}`;
+  const url = `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/${layerKey}/default/${time}/${config.matrix}/{z}/{y}/{x}.${config.format}`;
   state.tileLayer = L.tileLayer(url, {
     minZoom: 1,
     maxZoom: config.maxZoom,
@@ -175,7 +177,7 @@ function renderStorms(data) {
 
 function renderScenario(data) {
   const available = data && data.available !== false && !data.error;
-  for (const id of ["m-area", "m-pop", "m-assets"]) setText(id, "Unavailable");
+  for (const id of ["m-area", "m-total", "m-pct"]) setText(id, "Unavailable");
   if (!available) {
     setText("srTotal", "Unavailable");
     document.getElementById("summaryTbody").innerHTML = "<tr><td colspan=\"2\">Verified scenario data unavailable.</td></tr>";
@@ -183,6 +185,8 @@ function renderScenario(data) {
   }
 
   setText("m-area", Number(data.area_km2).toLocaleString());
+  setText("m-total", `${data.total_surge_ft} ft`);
+  setText("m-pct", `${data.pct_land_inundated}%`);
   setText("srTotal", `${data.total_surge_ft} ft`);
   const rows = [
     ["Category", `CAT ${data.category}`],
