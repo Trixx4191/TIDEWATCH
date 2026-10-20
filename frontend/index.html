@@ -6,7 +6,7 @@
   <title>TIDEWATCH | Coastal Data Explorer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIINfQ9nZUr24A8BfSfEpuvFhdRGuN4T5nQ=" crossorigin="">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
   <link rel="stylesheet" href="css/main.css">
   <link rel="stylesheet" href="css/app.css">
 </head>
@@ -38,19 +38,19 @@
         <div class="section-label">MAP LAYER</div>
         <label class="select-label" for="earthTileSelect">NASA GIBS BASEMAP</label>
         <select class="tw-select" id="earthTileSelect">
-          <option value="MODIS_Terra_CorrectedReflectance_TrueColor">MODIS Terra true color</option>
+          <option value="MODIS_Terra_CorrectedReflectance_TrueColor">MODIS Terra true color (yesterday)</option>
           <option value="VIIRS_SNPP_CorrectedReflectance_TrueColor">VIIRS SNPP true color</option>
-          <option value="BlueMarble_ShadedRelief_Bathymetry">Blue Marble relief</option>
+          <option value="BlueMarble_ShadedRelief_Bathymetry" selected>Blue Marble relief</option>
         </select>
       </section>
       <section class="sidebar-section">
         <div class="section-label">SCENARIO INPUTS</div>
         <div class="scenario-btns" id="scenarioBtns" role="group" aria-label="Storm category">
-          <button class="scenario-btn active" data-cat="1">CAT 1 · 4 ft</button>
-          <button class="scenario-btn" data-cat="2">CAT 2 · 8 ft</button>
-          <button class="scenario-btn" data-cat="3">CAT 3 · 12 ft</button>
-          <button class="scenario-btn" data-cat="4">CAT 4 · 18 ft</button>
-          <button class="scenario-btn" data-cat="5">CAT 5 · 28 ft</button>
+           <button class="scenario-btn active" data-cat="1"><span>CAT 1</span><small>4 ft</small></button>
+           <button class="scenario-btn" data-cat="2"><span>CAT 2</span><small>8 ft</small></button>
+           <button class="scenario-btn" data-cat="3"><span>CAT 3</span><small>12 ft</small></button>
+           <button class="scenario-btn" data-cat="4"><span>CAT 4</span><small>18 ft</small></button>
+           <button class="scenario-btn" data-cat="5"><span>CAT 5</span><small>28 ft</small></button>
         </div>
         <label class="select-label" for="slrSlider">IPCC AR6 SSP2-4.5 YEAR</label>
         <input class="tw-slider" type="range" id="slrSlider" min="2024" max="2100" step="1" value="2024">
@@ -60,21 +60,21 @@
         <div class="section-label">SCENARIO RESULTS</div>
         <div class="metric-grid">
           <div class="metric-card danger">
-            <div class="metric-label">AREA INUNDATED</div>
+            <div class="metric-label">INUNDATED AREA</div>
             <div class="metric-val" id="m-area">Unavailable</div>
             <div class="metric-unit">km²</div>
           </div>
           <div class="metric-card caution">
-            <div class="metric-label">POPULATION EXPOSED</div>
-            <div class="metric-val" id="m-pop">Unavailable</div>
-            <div class="metric-unit">Census data not loaded</div>
-          </div>
-          <div class="metric-card catastrophic">
-            <div class="metric-label">CRITICAL ASSETS</div>
-            <div class="metric-val" id="m-assets">Unavailable</div>
-            <div class="metric-unit">Infrastructure data not loaded</div>
+            <div class="metric-label">TOTAL THRESHOLD</div>
+            <div class="metric-val" id="m-total">Unavailable</div>
+            <div class="metric-unit">surge + sea-level rise</div>
           </div>
           <div class="metric-card safe">
+            <div class="metric-label">VALID LAND INUNDATED</div>
+            <div class="metric-val" id="m-pct">Unavailable</div>
+            <div class="metric-unit">of valid elevation cells</div>
+          </div>
+          <div class="metric-card neutral">
             <div class="metric-label">MEAN LEVEL ABOVE MHHW</div>
             <div class="metric-val" id="m-tidal">Unavailable</div>
             <div class="metric-unit">ft, observed-period average</div>
@@ -86,7 +86,6 @@
         <ul class="source-list" id="sourceList" aria-live="polite"></ul>
       </section>
     </aside>
-
     <main class="main-content">
       <div class="map-header">
         <div class="map-header-left">
