@@ -1,13 +1,15 @@
 "use strict";
 
-const express = require("express");
-const fs = require("fs");
-const path = require("path");
-const router = express.Router();
-const cache = require("../../utils/cache");
-const { REGIONS } = require("./regions");
+/**
+ * routes/tides.js — GET /api/tides?region=[&station=]
+ * Serves only NOAA CO-OPS records with verified provenance.
+ */
 
-const PROCESSED_DIR = path.join(__dirname, "../../data/processed");
+const express = require("express");
+const { REGIONS } = require("./regions");
+const { readJson } = require("../lib/data");
+
+const router = express.Router();
 
 router.get("/", (req, res) => {
   const { region, station } = req.query;
@@ -17,41 +19,30 @@ router.get("/", (req, res) => {
       valid: Object.keys(REGIONS),
     });
   }
-
-  const cacheKey = `tides:${region}:${station || "all"}`;
-  const cached = cache.get(cacheKey);
-  if (cached) {
-    res.setHeader("X-Cache", "HIT");
-    return res.json(cached);
-  }
-
-  const filePath = path.join(PROCESSED_DIR, `tides_${region}.json`);
-  if (!fs.existsSync(filePath)) {
-    return res.status(503).json({ error: "Verified NOAA CO-OPS observations are unavailable", region });
-  }
+  const unavailable = () => res.status(503).json({
+    error: "Verified NOAA CO-OPS observations are unavailable", region,
+  });
 
   try {
-    const data = JSON.parse(fs.readFileSync(filePath, "utf8"));
+    const data = readJson(`tides_${region}.json`);
+    if (!data) return unavailable();
     const verified = data.provenance?.provider === "NOAA CO-OPS"
       && data.provenance?.synthetic === false
       && Array.isArray(data.stations)
       && data.stations.length > 0
       && data.stations.every((record) => record.source === "NOAA CO-OPS");
-    if (!verified) {
-      return res.status(503).json({ error: "Verified NOAA CO-OPS observations are unavailable", region });
-    }
+    if (!verified) return unavailable();
     if (station) {
-      data.stations = data.stations.filter((record) => record.station_id === station);
-      if (data.stations.length === 0) {
+      const stations = data.stations.filter((record) => record.station_id === station);
+      if (stations.length === 0) {
         return res.status(404).json({ error: `Station '${station}' not found in region '${region}'` });
       }
+      return res.json({ ...data, stations });
     }
-    cache.set(cacheKey, data);
-    res.setHeader("X-Cache", "FILE");
     return res.json(data);
   } catch (error) {
     console.warn(`[tides] Invalid data for ${region}:`, error.message);
-    return res.status(503).json({ error: "NOAA CO-OPS observation data is invalid", region });
+    return unavailable();
   }
 });
 

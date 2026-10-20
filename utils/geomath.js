@@ -99,23 +99,22 @@ function feetToMeters(ft) { return ft * M_PER_FT; }
 function cmToFeet(cm) { return (cm / 100) * FT_PER_M; }
 
 /**
- * Interpolate IPCC AR6 intermediate SLR (meters) for a given year.
- * SSP2-4.5 scenario, Table 9.9.
+ * Interpolate IPCC AR6 global-mean SLR (metres) for a year, SSP2-4.5
+ * medium-confidence median, relative to the 1995–2014 baseline (≈2005).
+ * Anchors: AR6 WG1 Table 9.9 (2030, 2050, 2090, 2100). Mirrors
+ * data/common.py so the API and pipeline agree.
  *
- * @param {number} year - Target year (2024–2100)
- * @returns {number} SLR in meters above 2000 baseline
+ * @param {number} year - Target year (2005–2100)
+ * @returns {number} SLR in metres
  */
 function interpolateSLR(year) {
-  const table = {
-    2024: 0.06, 2030: 0.10, 2040: 0.17, 2050: 0.30,
-    2060: 0.38, 2075: 0.56, 2090: 0.78, 2100: 1.01,
-  };
-  year = Math.max(2024, Math.min(2100, year));
+  const table = { 2005: 0.0, 2030: 0.09, 2050: 0.20, 2090: 0.48, 2100: 0.56 };
   const years = Object.keys(table).map(Number).sort((a, b) => a - b);
+  const y = Math.max(years[0], Math.min(years[years.length - 1], year));
   for (let i = 0; i < years.length - 1; i++) {
     const y0 = years[i], y1 = years[i + 1];
-    if (year >= y0 && year <= y1) {
-      const t = (year - y0) / (y1 - y0);
+    if (y >= y0 && y <= y1) {
+      const t = (y - y0) / (y1 - y0);
       return table[y0] + t * (table[y1] - table[y0]);
     }
   }

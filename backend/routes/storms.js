@@ -1,72 +1,43 @@
 /**
  * routes/storms.js
  * ================
- * GET /api/storms
+ * GET /api/storms?region=
  *
- * Returns GeoJSON FeatureCollection of hurricane tracks for a region.
- * Serves only provenance-verified NOAA HURDAT2 files.
- *
- * Query params:
- *   region  {string}  Required. Region key.
- *
- * Example:
- *   GET /api/storms?region=gulf_coast
+ * Historical best tracks (GeoJSON) near a region: NOAA NHC HURDAT2 for the
+ * Atlantic / NE Pacific, NOAA NCEI IBTrACS for the North Indian Ocean.
+ * An empty FeatureCollection is a valid result ("no storms within the
+ * buffer"), distinct from "data unavailable" (503).
  */
 
 "use strict";
 
 const express = require("express");
-const fs      = require("fs");
-const path    = require("path");
-const router  = express.Router();
-const cache   = require("../../utils/cache");
 const { REGIONS } = require("./regions");
+const { readJson } = require("../lib/data");
 
-const PROCESSED_DIR = path.join(__dirname, "../../data/processed");
+const router = express.Router();
+const PROVIDERS = new Set(["NOAA NHC HURDAT2", "NOAA NCEI IBTrACS"]);
 
-/**
- * GET /api/storms
- */
 router.get("/", (req, res) => {
   const { region } = req.query;
-
-  if (!region) {
-    return res.status(400).json({ error: "Missing required param: region" });
-  }
+  if (!region) return res.status(400).json({ error: "Missing required param: region" });
   if (!REGIONS[region]) {
-    return res.status(400).json({
-      error: `Unknown region '${region}'`,
-      valid: Object.keys(REGIONS),
-    });
+    return res.status(400).json({ error: `Unknown region '${region}'`, valid: Object.keys(REGIONS) });
   }
-
-  const cacheKey = `storms:${region}`;
-  const hit = cache.get(cacheKey);
-  if (hit) {
-    res.setHeader("X-Cache", "HIT");
-    return res.json(hit);
-  }
-
-  const filePath = path.join(PROCESSED_DIR, `tracks_${region}.json`);
-  if (!fs.existsSync(filePath)) {
-    return res.status(503).json({ error: "Verified NOAA HURDAT2 tracks are unavailable", region });
-  }
+  const unavailable = () => res.status(503).json({ error: "Verified storm track data is unavailable", region });
 
   try {
-    const data = JSON.parse(fs.readFileSync(filePath, "utf8"));
-    const verified = data.provenance?.provider === "NOAA NHC HURDAT2"
+    const data = readJson(`tracks_${region}.json`);
+    if (!data) return unavailable();
+    const verified = PROVIDERS.has(data.provenance?.provider)
       && data.provenance?.synthetic === false
-      && Array.isArray(data.features)
-      && data.features.length > 0;
-    if (!verified) {
-      return res.status(503).json({ error: "Verified NOAA HURDAT2 tracks are unavailable", region });
-    }
-    cache.set(cacheKey, data);
-    res.setHeader("X-Cache", "FILE");
+      && data.region === region
+      && Array.isArray(data.features);
+    if (!verified) return unavailable();
     return res.json(data);
   } catch (error) {
     console.warn(`[storms] Invalid data for ${region}:`, error.message);
-    return res.status(503).json({ error: "NOAA HURDAT2 track data is invalid", region });
+    return unavailable();
   }
 });
 

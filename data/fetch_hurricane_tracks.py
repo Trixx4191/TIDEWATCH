@@ -1,288 +1,330 @@
 """
 fetch_hurricane_tracks.py
 =========================
-Downloads and parses NOAA HURDAT2 best-track database for Atlantic
-and Eastern Pacific basins. Filters tracks that passed within 200
-nautical miles of each study region and formats as GeoJSON.
+Historical tropical-cyclone best tracks near each study region.
 
-Data source: NOAA National Hurricane Center HURDAT2
-URL:         https://www.nhc.noaa.gov/data/hurdat/
-Format:      CSV best-track, 6-hourly storm positions
-License:     Public domain
+Sources
+-------
+* NOAA NHC HURDAT2 (Atlantic 1851–, NE/NC Pacific 1949–). The newest file
+  is discovered from the NHC directory listing, with a pinned fallback.
+* NOAA NCEI IBTrACS v04r01 (North Indian basin) for the Bay of Bengal,
+  which HURDAT2 does not cover.
 
-Usage:
-    python fetch_hurricane_tracks.py --region gulf_coast
-    python fetch_hurricane_tracks.py --all
+Output (GeoJSON FeatureCollection, one LineString per storm)
+------------------------------------------------------------
+Each fix carries its own intensity class, so tracks are drawn as
+intensity-coloured segments rather than a single flat line:
+
+* HURDAT2 status HU → Saffir-Simpson C1–C5 from 1-min wind; TS/TD as is;
+  SS/SD → "SS"; EX/LO/WV/DB → "EX" (not tropical — drawn dashed).
+* Longitudes are unwrapped so Pacific tracks that cross 180° do not draw a
+  line across the whole map.
+* A storm is kept when any fix lies within ``buffer_nm`` of the region box.
+  Closest approach, intensity there, landfalls, peak wind, and minimum
+  pressure are stored for the dashboard.
 """
 
-import json
-import math
+from __future__ import annotations
+
 import argparse
-import requests
+import csv
+import io
+import re
+from datetime import datetime
 from pathlib import Path
 
-OUTPUT_DIR = Path("data/processed")
+if __package__:
+    from .common import (INTENSITY_RANK, PROCESSED_DIR, RAW_DIR, REGIONS, cached_download,
+                         distance_to_bbox_nm, make_session, saffir_simpson, unwrap_longitudes,
+                         utc_now_iso, write_json)
+else:
+    from common import (INTENSITY_RANK, PROCESSED_DIR, RAW_DIR, REGIONS, cached_download,
+                        distance_to_bbox_nm, make_session, saffir_simpson, unwrap_longitudes,
+                        utc_now_iso, write_json)
 
-# ── HURDAT2 DOWNLOAD URLS ────────────────────────────────────────────────────
-HURDAT2_URLS = {
-    "atlantic": "https://www.nhc.noaa.gov/data/hurdat/hurdat2-1851-2023-051124.txt",
-    "pacific":  "https://www.nhc.noaa.gov/data/hurdat/hurdat2-nepac-1949-2023-042624.txt",
+OUTPUT_DIR = PROCESSED_DIR
+HURDAT2_INDEX = "https://www.nhc.noaa.gov/data/hurdat/"
+HURDAT2_PATTERNS = {
+    "atlantic": re.compile(r"hurdat2-1851-(\d{4})-(\d{6,8})\.txt"),
+    "pacific": re.compile(r"hurdat2-nepac-1949-(\d{4})-(\d{6,8})a?\.txt"),
 }
-
-# ── REGION CENTROIDS + RADIUS FILTER ────────────────────────────────────────
-REGION_FILTERS = {
-    "gulf_coast":    {"lat": 29.5,  "lon": -90.5,  "radius_nm": 300, "basin": "atlantic"},
-    "atlantic":      {"lat": 40.2,  "lon": -74.0,  "radius_nm": 250, "basin": "atlantic"},
-    "florida":       {"lat": 26.0,  "lon": -81.0,  "radius_nm": 300, "basin": "atlantic"},
-    "pacific":       {"lat": 35.5,  "lon": -120.0, "radius_nm": 250, "basin": "pacific"},
-    "caribbean":     {"lat": 18.0,  "lon": -66.0,  "radius_nm": 300, "basin": "atlantic"},
-    "bay_of_bengal": {"lat": 22.0,  "lon": 90.5,   "radius_nm": 400, "basin": None},
+# Newest files in the NHC listing as of 2026-10-20 — used if discovery fails.
+HURDAT2_FALLBACK = {
+    "atlantic": "hurdat2-1851-2025-092326.txt",
+    "pacific": "hurdat2-nepac-1949-2025-092926.txt",
 }
+IBTRACS_URL = ("https://www.ncei.noaa.gov/data/international-best-track-archive-for-climate-"
+               "stewardship-ibtracs/v04r01/access/csv/ibtracs.{basin}.list.v04r01.csv")
 
-SAFFIR_SIMPSON = (
-    (0, 33, "TD", "#5c9bd6"),
-    (34, 63, "TS", "#4ecdc4"),
-    (64, 82, "CAT1", "#ffe66d"),
-    (83, 95, "CAT2", "#f7b731"),
-    (96, 112, "CAT3", "#ff6b35"),
-    (113, 136, "CAT4", "#e74c3c"),
-    (137, 999, "CAT5", "#8e44ad"),
-)
+TROPICAL = {"TD", "TS", "C1", "C2", "C3", "C4", "C5", "SS"}
+_HURDAT_STATUS = {"TD": "TD", "TS": "TS", "SD": "SS", "SS": "SS",
+                  "EX": "EX", "LO": "EX", "WV": "EX", "DB": "EX"}
+
+
+# ── CLASSIFICATION ──────────────────────────────────────────────────────────
+def classify_fix(status: str, wind_kt: int | None) -> str:
+    """Intensity class for one best-track fix."""
+    status = (status or "").strip().upper()
+    if status == "HU":
+        cls = saffir_simpson(wind_kt)
+        return cls if cls in ("C1", "C2", "C3", "C4", "C5") else "C1"
+    if status in _HURDAT_STATUS:
+        return _HURDAT_STATUS[status]
+    return saffir_simpson(wind_kt) or "EX"
 
 
 def classify_intensity(wind_kt: int) -> tuple:
-    """
-    Classify storm intensity by Saffir-Simpson scale.
-
-    Args:
-        wind_kt: Maximum sustained wind speed in knots
-
-    Returns:
-        Tuple of (label, hex_color)
-    """
-    for min_kt, max_kt, label, color in SAFFIR_SIMPSON:
-        if min_kt <= wind_kt <= max_kt:
-            return label, color
-    return "TD", "#5c9bd6"
+    """Backward-compatible (label, colour) by wind only."""
+    colours = {"TD": "#4a90d9", "TS": "#2bb3a3", "C1": "#f2d33b", "C2": "#f39c34",
+               "C3": "#e8592a", "C4": "#c8202f", "C5": "#8e1b74"}
+    label = saffir_simpson(wind_kt) or "TD"
+    return label, colours[label]
 
 
-def haversine_nm(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
-    """
-    Compute great-circle distance in nautical miles between two points.
-
-    Args:
-        lat1, lon1: First point coordinates (decimal degrees)
-        lat2, lon2: Second point coordinates (decimal degrees)
-
-    Returns:
-        Distance in nautical miles
-    """
-    R = 3440.065  # Earth radius in nautical miles
-    phi1, phi2 = math.radians(lat1), math.radians(lat2)
-    dphi = math.radians(lat2 - lat1)
-    dlam = math.radians(lon2 - lon1)
-    a = math.sin(dphi/2)**2 + math.cos(phi1)*math.cos(phi2)*math.sin(dlam/2)**2
-    return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+# ── HURDAT2 ─────────────────────────────────────────────────────────────────
+def _suffix_date(suffix: str) -> datetime:
+    fmt = "%m%d%Y" if len(suffix) == 8 else "%m%d%y"
+    try:
+        return datetime.strptime(suffix, fmt)
+    except ValueError:
+        return datetime.min
 
 
-def track_to_geojson(track: dict) -> dict:
-    """
-    Convert a HURDAT2-format track dict to GeoJSON LineString feature
-    with per-node intensity metadata.
+def latest_hurdat2_filename(index_html: str, basin: str) -> str | None:
+    """Pick the newest HURDAT2 file for a basin from the NHC index HTML."""
+    matches = {m.group(0): (int(m.group(1)), _suffix_date(m.group(2)))
+               for m in HURDAT2_PATTERNS[basin].finditer(index_html)}
+    if not matches:
+        return None
+    return max(matches, key=matches.get)
 
-    Args:
-        track: Dict with name, id, nodes list, landfall info
 
-    Returns:
-        GeoJSON Feature dict
-    """
-    nodes_with_meta = []
-    for node in track["nodes"]:
-        label, color = classify_intensity(node["wind_kt"])
-        nodes_with_meta.append({
-            **node,
-            "intensity_label": label,
-            "intensity_color": color,
+def resolve_hurdat2_url(basin: str, session) -> str:
+    try:
+        response = session.get(HURDAT2_INDEX, timeout=30)
+        response.raise_for_status()
+        name = latest_hurdat2_filename(response.text, basin)
+    except Exception as error:  # network or parse failure → pinned version
+        print(f"  ⚠ HURDAT2 index lookup failed ({error}); using pinned file")
+        name = None
+    return HURDAT2_INDEX + (name or HURDAT2_FALLBACK[basin])
+
+
+def _parse_coord(token: str) -> float:
+    token = token.strip().upper()
+    value = float(token[:-1])
+    return -value if token[-1] in ("S", "W") else value
+
+
+def parse_hurdat2(text: str) -> list[dict]:
+    """Parse HURDAT2 text into storms: {'id','name','fixes':[...]}."""
+    storms, current = [], None
+    for line in text.splitlines():
+        parts = [p.strip() for p in line.split(",")]
+        if len(parts) < 3 or not parts[0]:
+            continue
+        if parts[0][:2] in ("AL", "EP", "CP") and len(parts[0]) == 8:
+            current = {"id": parts[0], "name": parts[1] or "UNNAMED", "fixes": []}
+            storms.append(current)
+            continue
+        if current is None or len(parts) < 8:
+            continue
+        try:
+            wind = int(parts[6])
+            pres = int(parts[7])
+            hhmm = parts[1].zfill(4)
+            current["fixes"].append({
+                "t": f"{parts[0][:4]}-{parts[0][4:6]}-{parts[0][6:8]}T{hhmm[:2]}:{hhmm[2:]}Z",
+                "lat": _parse_coord(parts[4]),
+                "lon": _parse_coord(parts[5]),
+                "wind_kt": wind if wind >= 0 else None,
+                "pres_mb": pres if pres > 0 else None,
+                "status": parts[3],
+                "landfall": parts[2] == "L",
+            })
+        except (ValueError, IndexError):
+            continue
+    return storms
+
+
+# ── IBTrACS ─────────────────────────────────────────────────────────────────
+_SSHS = {-1: "TD", 0: "TS", 1: "C1", 2: "C2", 3: "C3", 4: "C4", 5: "C5", -2: "SS", -4: "EX"}
+
+
+def _num(value: str) -> float | None:
+    try:
+        value = value.strip()
+        return float(value) if value else None
+    except (AttributeError, ValueError):
+        return None
+
+
+def parse_ibtracs(text: str) -> list[dict]:
+    """Parse an IBTrACS v04 CSV (header + units row) into the storm format."""
+    reader = csv.DictReader(io.StringIO(text))
+    storms: dict[str, dict] = {}
+    previous_landfall: dict[str, float | None] = {}
+    for row in reader:
+        sid = (row.get("SID") or "").strip()
+        if not sid or not sid[:4].isdigit():  # skips the units row
+            continue
+        track_type = (row.get("TRACK_TYPE") or "").strip().lower()
+        if track_type and not (track_type == "main" or track_type.startswith("provisional")):
+            continue
+        lat, lon = _num(row.get("LAT", "")), _num(row.get("LON", ""))
+        if lat is None or lon is None:
+            continue
+        usa_wind = _num(row.get("USA_WIND", ""))
+        wmo_wind = _num(row.get("WMO_WIND", ""))
+        sshs = _num(row.get("USA_SSHS", ""))
+        nature = (row.get("NATURE") or "").strip().upper()
+        if sshs is not None and int(sshs) in _SSHS:
+            cls = _SSHS[int(sshs)]
+        elif nature in ("ET",):
+            cls = "EX"
+        elif nature == "SS":
+            cls = "SS"
+        else:
+            cls = saffir_simpson(usa_wind if usa_wind is not None else wmo_wind) or "TD"
+        landfall_km = _num(row.get("LANDFALL", ""))
+        prev = previous_landfall.get(sid)
+        landfall = landfall_km == 0 and (prev is None or prev > 0)
+        previous_landfall[sid] = landfall_km
+        storm = storms.setdefault(sid, {"id": sid, "name": (row.get("NAME") or "UNNAMED").strip(),
+                                        "fixes": []})
+        iso = (row.get("ISO_TIME") or "").strip()
+        storm["fixes"].append({
+            "t": iso.replace(" ", "T")[:16] + "Z" if iso else None,
+            "lat": lat, "lon": lon,
+            "wind_kt": int(round(usa_wind if usa_wind is not None else wmo_wind))
+            if (usa_wind is not None or wmo_wind is not None) else None,
+            "pres_mb": int(round(_num(row.get("USA_PRES", "")) or _num(row.get("WMO_PRES", "")) or 0)) or None,
+            "cls": cls,
+            "landfall": bool(landfall),
+            "wind_source": "USA (1-min)" if usa_wind is not None else ("WMO (IMD 3-min)" if wmo_wind is not None else None),
         })
+    return list(storms.values())
 
-    coordinates = [[n["lon"], n["lat"]] for n in track["nodes"]]
 
+# ── FEATURE BUILDING ────────────────────────────────────────────────────────
+def storm_to_feature(storm: dict, bbox: list, buffer_nm: float) -> dict | None:
+    """GeoJSON feature if the storm passed within buffer_nm of bbox, else None."""
+    fixes = storm["fixes"]
+    if len(fixes) < 1:
+        return None
+    for fix in fixes:
+        if "cls" not in fix:
+            fix["cls"] = classify_fix(fix.get("status"), fix.get("wind_kt"))
+    distances = [distance_to_bbox_nm(f["lat"], f["lon"], bbox) for f in fixes]
+    closest_index = min(range(len(fixes)), key=distances.__getitem__)
+    if distances[closest_index] > buffer_nm:
+        return None
+
+    lons = unwrap_longitudes([f["lon"] for f in fixes])
+    winds = [f["wind_kt"] for f in fixes if f.get("wind_kt") is not None]
+    pressures = [f["pres_mb"] for f in fixes if f.get("pres_mb")]
+    peak_cls = max((f["cls"] for f in fixes), key=lambda c: INTENSITY_RANK.get(c, 0))
+    near = [f for f, d in zip(fixes, distances) if d <= buffer_nm]
+    near_cls = max((f["cls"] for f in near), key=lambda c: INTENSITY_RANK.get(c, 0))
+    year = int((fixes[0].get("t") or "0000")[:4])
+    landfalls = [{"t": f["t"], "lat": f["lat"], "lon": lon, "wind_kt": f.get("wind_kt"),
+                  "cls": f["cls"], "in_region": distance_to_bbox_nm(f["lat"], f["lon"], bbox) == 0}
+                 for f, lon in zip(fixes, lons) if f.get("landfall")]
+    closest = fixes[closest_index]
     return {
         "type": "Feature",
         "properties": {
-            "name":         track["name"],
-            "id":           track["id"],
-            "landfall":     track.get("landfall"),
-            "nodes":        nodes_with_meta,
+            "id": storm["id"],
+            "name": storm["name"].title() if storm["name"].isupper() else storm["name"],
+            "year": year,
+            "start": fixes[0].get("t"),
+            "end": fixes[-1].get("t"),
+            "peak_wind_kt": max(winds) if winds else None,
+            "peak_class": peak_cls,
+            "min_pressure_mb": min(pressures) if pressures else None,
+            "closest_approach_nm": round(distances[closest_index], 1),
+            "closest_approach_time": closest.get("t"),
+            "class_at_closest": closest["cls"],
+            "max_class_near_region": near_cls,
+            "tropical_near_region": any(f["cls"] in TROPICAL for f in near),
+            "landfalls": landfalls,
+            "fixes": [{"t": f.get("t"), "wind_kt": f.get("wind_kt"), "pres_mb": f.get("pres_mb"),
+                       "cls": f["cls"]} for f in fixes],
         },
         "geometry": {
-            "type": "LineString",
-            "coordinates": coordinates,
+            "type": "LineString" if len(fixes) > 1 else "Point",
+            "coordinates": ([[round(lon, 2), f["lat"]] for f, lon in zip(fixes, lons)]
+                            if len(fixes) > 1 else [round(lons[0], 2), fixes[0]["lat"]]),
         },
     }
 
 
-def fetch_hurricane_tracks(region_key: str, output_dir: Path = OUTPUT_DIR) -> Path:
-    """
-    Fetch NOAA HURDAT2 tracks passing within the region filter radius.
-
-    Args:
-        region_key: Region identifier string
-        output_dir: Output directory path
-
-    Returns:
-        Path to saved GeoJSON file
-    """
-    if region_key not in REGION_FILTERS:
-        raise ValueError(f"Unknown region: {region_key}")
-
-    print(f"\n🌀 Fetching hurricane tracks for: {region_key}")
-    output_dir.mkdir(parents=True, exist_ok=True)
-    output_path = output_dir / f"tracks_{region_key}.json"
-
-    features = []
-
-    region_filter = REGION_FILTERS[region_key]
-    basin = region_filter["basin"]
-
-    if basin not in HURDAT2_URLS:
-        raise RuntimeError(f"HURDAT2 coverage is unavailable for {region_key}")
-
-    response = requests.get(HURDAT2_URLS[basin], timeout=30)
-    response.raise_for_status()
-    features = _parse_hurdat2(
-        response.text,
-        region_filter["lat"],
-        region_filter["lon"],
-        region_filter["radius_nm"],
-    )
-    if not features:
-        raise RuntimeError(f"No HURDAT2 tracks found near {region_key}")
-
-    geojson = {
+def build_feature_collection(storms: list[dict], region_key: str, region: dict, source: dict) -> dict:
+    buffer_nm = region["storm_source"].get("buffer_nm", 100)
+    features = [f for f in (storm_to_feature(s, region["bbox"], buffer_nm) for s in storms) if f]
+    features.sort(key=lambda f: (f["properties"]["year"], f["properties"]["start"] or ""))
+    years = [f["properties"]["year"] for f in features]
+    counts: dict[str, int] = {}
+    for f in features:
+        counts[f["properties"]["max_class_near_region"]] = counts.get(f["properties"]["max_class_near_region"], 0) + 1
+    return {
         "type": "FeatureCollection",
         "region": region_key,
+        "source": source["provider"],
+        "summary": {
+            "count": len(features),
+            "buffer_nm": buffer_nm,
+            "selection": f"Any best-track fix within {buffer_nm} nm of the study-region box",
+            "first_year": min(years) if years else None,
+            "last_year": max(years) if years else None,
+            "record_start_year": source.get("record_start_year"),
+            "hurricanes_near_region": sum(v for k, v in counts.items() if k.startswith("C")),
+            "major_hurricanes_near_region": sum(counts.get(k, 0) for k in ("C3", "C4", "C5")),
+            "landfalls_in_region": sum(1 for f in features for lf in f["properties"]["landfalls"] if lf["in_region"]),
+            "by_max_class_near_region": counts,
+        },
         "features": features,
-        "source": "NOAA NHC HURDAT2",
-        "provenance": {"provider": "NOAA NHC HURDAT2", "synthetic": False},
+        "provenance": {**source, "synthetic": False, "generated_at": utc_now_iso()},
     }
 
-    with open(output_path, "w") as f:
-        json.dump(geojson, f, indent=2)
 
-    print(f"  ✓ Saved {output_path} ({len(features)} tracks)")
-    return output_path
+def fetch_hurricane_tracks(region_key: str, output_dir: Path = OUTPUT_DIR, raw_dir: Path = RAW_DIR) -> Path:
+    if region_key not in REGIONS:
+        raise ValueError(f"Unknown region: {region_key}")
+    region = REGIONS[region_key]
+    spec = region.get("storm_source") or {}
+    print(f"\n🌀 Fetching storm tracks for: {region_key}")
 
+    with make_session() as session:
+        if spec.get("provider") == "hurdat2":
+            url = resolve_hurdat2_url(spec["basin"], session)
+            content, record = cached_download(url, Path(raw_dir) / "hurdat2" / url.rsplit("/", 1)[-1],
+                                              session=session)
+            storms = parse_hurdat2(content.decode("utf-8", errors="replace"))
+            source = {"provider": "NOAA NHC HURDAT2", "basin": spec["basin"], **record,
+                      "record_start_year": 1851 if spec["basin"] == "atlantic" else 1949}
+        elif spec.get("provider") == "ibtracs":
+            url = IBTRACS_URL.format(basin=spec["basin"])
+            content, record = cached_download(url, Path(raw_dir) / "ibtracs" / url.rsplit("/", 1)[-1],
+                                              session=session, timeout=300)
+            storms = parse_ibtracs(content.decode("utf-8", errors="replace"))
+            source = {"provider": "NOAA NCEI IBTrACS", "version": "v04r01", "basin": spec["basin"],
+                      **record, "record_start_year": min(int(s["id"][:4]) for s in storms) if storms else None}
+        else:
+            raise RuntimeError(f"No best-track source configured for {region_key}")
 
-def _parse_hurdat2(text: str, lat: float, lon: float,
-                   radius_nm: float, exclude_id: str = None) -> list:
-    """
-    Parse raw HURDAT2 text format and return GeoJSON features
-    for tracks passing within radius_nm of (lat, lon).
-
-    HURDAT2 format:
-        Header: AL011851, UNNAMED, 14,
-        Data:   18510625, 0000, , HU, 28.0N, 94.8W, 80, 950, ...
-
-    Args:
-        text:       Raw HURDAT2 file content
-        lat, lon:   Region center coordinates
-        radius_nm:  Filter radius in nautical miles
-        exclude_id: Storm ID to skip (already used as benchmark)
-
-    Returns:
-        List of GeoJSON Feature dicts
-    """
-    features = []
-    current_storm = None
-    current_nodes = []
-
-    for line in text.strip().split("\n"):
-        line = line.strip()
-        if not line:
-            continue
-
-        parts = [p.strip() for p in line.split(",")]
-
-        # Header line: storm ID starts with AL, EP, CP
-        if len(parts) >= 3 and parts[0][:2] in ("AL", "EP", "CP"):
-            # Save previous storm if valid
-            if current_storm and current_nodes:
-                feature = _maybe_add_storm(
-                    current_storm, current_nodes, lat, lon, radius_nm, exclude_id
-                )
-                if feature:
-                    features.append(feature)
-
-            current_storm = {"id": parts[0], "name": parts[1]}
-            current_nodes = []
-
-        # Data line
-        elif current_storm and len(parts) >= 8:
-            try:
-                node_lat = float(parts[4].replace("N","").replace("S","")) * (
-                    -1 if "S" in parts[4] else 1)
-                node_lon = float(parts[5].replace("E","").replace("W","")) * (
-                    -1 if "W" in parts[5] else 1)
-                wind_kt  = int(parts[6]) if parts[6].strip() else 0
-                pressure = int(parts[7]) if parts[7].strip() else 1013
-
-                current_nodes.append({
-                    "lat": node_lat, "lon": node_lon,
-                    "wind_kt": wind_kt, "pressure": pressure,
-                    "dt": f"{parts[0][:4]}-{parts[0][4:6]}-{parts[0][6:8]} {parts[1].strip()}",
-                })
-            except (ValueError, IndexError):
-                continue
-
-    # Don't forget last storm
-    if current_storm and current_nodes:
-        feature = _maybe_add_storm(
-            current_storm, current_nodes, lat, lon, radius_nm, exclude_id
-        )
-        if feature:
-            features.append(feature)
-
-    return features
-
-
-def _maybe_add_storm(storm: dict, nodes: list, lat: float, lon: float,
-                     radius_nm: float, exclude_id: str) -> dict | None:
-    """
-    Return GeoJSON feature if any storm node is within radius_nm,
-    otherwise return None.
-    """
-    if exclude_id and storm["id"] == exclude_id:
-        return None
-
-    for node in nodes:
-        dist = haversine_nm(lat, lon, node["lat"], node["lon"])
-        if dist <= radius_nm:
-            peak_wind = max(n["wind_kt"] for n in nodes)
-            label, color = classify_intensity(peak_wind)
-            return {
-                "type": "Feature",
-                "properties": {
-                    "name":             storm["name"],
-                    "id":               storm["id"],
-                    "peak_wind_kt":     peak_wind,
-                    "peak_intensity":   label,
-                    "intensity_color":  color,
-                    "nodes":            nodes,
-                    "landfall":         None,
-                    "peak_surge_ft":    None,
-                },
-                "geometry": {
-                    "type": "LineString",
-                    "coordinates": [[n["lon"], n["lat"]] for n in nodes],
-                },
-            }
-    return None
+    if not storms:
+        raise RuntimeError(f"Best-track file parsed to zero storms for {region_key}")
+    collection = build_feature_collection(storms, region_key, region, source)
+    path = write_json(Path(output_dir) / f"tracks_{region_key}.json", collection, compact=True)
+    print(f"  ✓ Saved {path.name} ({collection['summary']['count']} storms within "
+          f"{collection['summary']['buffer_nm']} nm)")
+    return path
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Fetch NOAA HURDAT2 hurricane tracks")
-    parser.add_argument("--region", required=True, choices=list(REGION_FILTERS.keys()))
-    parser.add_argument("--output", default="data/processed", type=Path)
+    parser = argparse.ArgumentParser(description="Fetch historical tropical-cyclone tracks")
+    parser.add_argument("--region", required=True, choices=list(REGIONS))
+    parser.add_argument("--output", default=OUTPUT_DIR, type=Path)
     args = parser.parse_args()
     fetch_hurricane_tracks(args.region, args.output)

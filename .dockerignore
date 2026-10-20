@@ -6,4 +6,4 @@ npm-debug.log*
 data/raw
 data/processed
 **/__pycache__
-*.py[cod]
+*.py[cod]data/packages
