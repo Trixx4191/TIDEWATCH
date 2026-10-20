@@ -63,7 +63,11 @@ function renderSourceStatus() {
   const status = loaded === sources.length ? "SOURCE DATA AVAILABLE"
     : loaded > 0 ? "PARTIAL SOURCE DATA"
       : "NO VERIFIED SOURCE DATA";
-  setText("datasetStatus", status);
+  const statusElement = document.getElementById("datasetStatus");
+  statusElement.textContent = status;
+  statusElement.classList.toggle("status-available", loaded === sources.length);
+  statusElement.classList.toggle("status-partial", loaded > 0 && loaded < sources.length);
+  statusElement.classList.toggle("status-unavailable", loaded === 0);
   const list = document.getElementById("sourceList");
   list.replaceChildren(...sources.map(([name, data]) => {
     const item = document.createElement("li");
@@ -101,7 +105,10 @@ function showRegion(region) {
     [region.bbox[1], region.bbox[0]],
     [region.bbox[3], region.bbox[2]],
   ], { color: "#d95d39", weight: 2, fill: false }).addTo(mapLayers.region);
-  map.fitBounds(state.regionLayer.getBounds(), { padding: [20, 20] });
+  window.requestAnimationFrame(() => {
+    map.invalidateSize({ pan: false });
+    map.fitBounds(state.regionLayer.getBounds(), { padding: [20, 20] });
+  });
   return loadRegionData(region.key);
 }
 
