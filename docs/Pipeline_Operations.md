@@ -215,20 +215,35 @@ region is swapped in atomically. Uploaded and exported files live in
 
 ## Deployment
 
+### Free host choice
+
+| Host | Fit for TIDEWATCH |
+|---|---|
+| [Oracle Cloud Always Free VM](https://www.oracle.com/cloud/free/) | Best fit for the complete app: an Ampere A1 VM can use up to 2 OCPUs and 12 GB RAM, with 200 GB total Always Free block storage. It provides durable local storage for datasets and enough memory for the pipeline. It is self-managed; capacity depends on the home region, and idle instances may be reclaimed. |
+| [Render free web service](https://render.com/pricing) | Not suitable for persistent datasets or builds: free services have 512 MB RAM, and [persistent disks](https://render.com/docs/disks) require a paid service. |
+| [Google Cloud Run](https://cloud.google.com/run/pricing) | Possible for a stateless/read-only API, but local files are not durable across instances. TIDEWATCH's dataset and job pipeline need persistent shared storage and would require an object-storage redesign. |
+
+For a no-cost deployment that keeps the existing Data panel, use an OCI Always
+Free VM with Docker Compose and a TLS reverse proxy. OCI account verification,
+regional A1 capacity, and VM setup are external prerequisites; this repository
+cannot provision the cloud account. Keep a backup of `/app/state` even when
+using a persistent VM disk.
+
 ```bash
-docker build -t tidewatch .
-docker run -d --name tidewatch -p 3000:3000 \
-  -v tidewatch-data:/app/data \
-  -e TIDEWATCH_ADMIN_TOKEN="$(openssl rand -hex 24)" \
-  -e CENSUS_API_KEY=… \
-  tidewatch
+docker compose up -d --build
 ```
 
 - The image contains Node, Python 3 with numpy/scipy/requests, the pipeline
-  scripts and the config. `/app/data` (processed, raw cache, packages) should
-  be a volume so data survives restarts.
+  scripts and the config. Compose mounts `/app/state` for processed data, raw
+  cache and packages. Keep this separate from `/app/data`, which contains the
+  pipeline scripts; mounting over `/app/data` prevents admin jobs from starting.
+- Create a server-side `.env` (never commit it) with
+  `TIDEWATCH_ADMIN_TOKEN` set to a random value of at least 16 characters.
+  Add `CENSUS_API_KEY` if ACS figures are wanted. The Compose service binds to
+  `127.0.0.1:3000`; put a TLS reverse proxy such as Caddy in front of it and
+  point a domain at the VM before enabling public admin access.
 - **Read-only alternative:** omit the token and mount prepared data
-  read-only (`-v /path/processed:/app/data/processed:ro`). The Data panel then
+  read-only (`-v /path/processed:/app/state/processed:ro`). The Data panel then
   shows status only, and the Setup check reports the folder as not writable.
 - Put a TLS reverse proxy in front. The admin token is a bearer secret, so
   never serve it over plain HTTP. If the proxy is on the same host, Local mode
@@ -237,6 +252,9 @@ docker run -d --name tidewatch -p 3000:3000 \
 - The health check calls `/api/health`. Cache `/api/surge/overlay/*` and
   `/api/census/overlay/*` at the proxy if you like. Review basemap licences
   (README).
+- Before announcing the site, confirm `/api/health` reports the expected
+  datasets and a known scenario request returns HTTP 200; missing or unverified
+  scenario data is intentionally reported as unavailable.
 - Data operations need outbound HTTPS to the hosts above. If the server has
   none, build elsewhere and import a package.
 

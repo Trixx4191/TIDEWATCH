@@ -24,6 +24,7 @@ Open `http://localhost:3000` after `npm start`.
 | `js/util.js` | `el`/`svg` DOM builders, unit system + formatters (`fmtLen`, `fmtArea`, `fmtDistance`, `fmtSurface`), `toCsv`, `download`, `toast`, `debounce` |
 | `css/main.css` + `css/app.css` | Original layout and theme tokens (`--safe`, `--danger`, `--border`, …) |
 | `css/ops.css` | Everything added for the operational controls, Data panel, People views, the print layout and mobile ordering |
+| `css/theme.css` | **Loaded last.** The visual theme: colour tokens (`--nasa-blue`, `--deep`, `--panel`, `--safe`, `--action`, …), Source Sans 3, 2 px radii, dark map widgets, Leaflet popup skin, and a light print palette. Change the look here, not in the files above |
 
 ## State model (`main.js: state`)
 
