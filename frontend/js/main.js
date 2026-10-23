@@ -69,7 +69,7 @@ const DEPTH_CLASSES = [
   { id: 4, color: "#d7301f", rgb: [215, 48, 31], lo: 9, hi: null },
   { id: 5, color: "#5fb45f", rgb: [95, 180, 95], lo: null, hi: null },
 ];
-const TRACK_COLOR = "#2f7fd8";
+const TRACK_COLOR = "#4b9cf5";
 
 function depthLabel(cls, { short = false } = {}) {
   if (cls.id === 5) return short ? "Low-lying" : "Low-lying, not connected";
@@ -200,7 +200,7 @@ function renderLegend() {
   }
   if (state.overlayLayer && state.overlays.includes("flood")) {
     sections.push(el("div", { className: "tw-legend-section" }, [
-      el("div", { className: "tw-legend-title" }, `Flood depth · CAT ${state.category} · ${state.slrYear}`),
+      el("div", { className: "tw-legend-title" }, `Flood depth, Cat ${state.category}, ${state.slrYear}`),
       ...DEPTH_CLASSES.map((cls) => el("div", {
         className: `tw-legend-row${state.hiddenDepth.includes(cls.id) ? " is-off" : ""}`,
       }, [el("span", { className: "tw-swatch", style: `background:${cls.color}` }), depthLabel(cls)])),
@@ -246,9 +246,9 @@ function renderSourceStatus() {
   ];
   const loaded = sources.filter(([, data]) => isAvailable(data)).length;
   const pending = sources.some(([, data]) => data === null);
-  const status = pending ? "LOADING SOURCE DATA"
-    : loaded === sources.length ? "SOURCE DATA AVAILABLE"
-      : loaded > 0 ? "PARTIAL SOURCE DATA" : "NO VERIFIED SOURCE DATA";
+  const status = pending ? "Loading source data"
+    : loaded === sources.length ? "Source data available"
+      : loaded > 0 ? "Partial source data" : "No verified source data";
   const statusElement = document.getElementById("datasetStatus");
   statusElement.textContent = status;
   statusElement.classList.toggle("status-available", !pending && loaded === sources.length);
@@ -438,7 +438,7 @@ function renderTides(data) {
       ["MHHW − MSL", Number.isFinite(datums.mhhw_minus_msl_ft) ? fmtLen(datums.mhhw_minus_msl_ft, 2) : "—"],
     ];
     const marker = L.circleMarker([station.lat, station.lon], {
-      renderer: stationRenderer, radius: 6, color: "#ffffff", weight: 2, fillColor: "#006d77", fillOpacity: 1,
+      renderer: stationRenderer, radius: 6, color: "#ffffff", weight: 2, fillColor: "#1f8fd6", fillOpacity: 1,
     })
       .bindTooltip(station.name, { direction: "top", offset: [0, -6] })
       .bindPopup(() => popupTable(station.name, `NOAA CO-OPS ${station.station_id}`, rows,
@@ -480,7 +480,7 @@ function renderTides(data) {
       complete: r.complete !== false,
       peak: r.max_ft === peak,
       label: `${fmt(r.completeness_pct, 1)}%${r.complete === false ? " (incomplete)" : ""}`,
-    })), { color: "#006d77", valueFmt: (v) => `${fmt(v, 2)} ${units().length} above MHHW` });
+    })), { color: "#4b9cf5", valueFmt: (v) => `${fmt(v, 2)} ${units().length} above MHHW` });
   }
   const means = data.stations.map((s) => s.mean_level_above_mhhw_ft).filter(Number.isFinite);
   setText("m-tidal", means.length ? fmt(lenValue(means.reduce((a, b) => a + b, 0) / means.length), 2) : "Unavailable");
@@ -553,7 +553,7 @@ function renderStorms() {
   state.stormGroups.clear();
   const data = state.storms;
   if (!isAvailable(data) || !Array.isArray(data.features)) {
-    setText("stormStatus", data === null ? "LOADING TRACKS" : "TRACK DATA UNAVAILABLE");
+    setText("stormStatus", data === null ? "Loading tracks" : "Track data unavailable");
     setText("stormCount", "");
     renderStormTable();
     return;
@@ -562,7 +562,7 @@ function renderStorms() {
   const shown = visibleStorms();
   setText("stormCount", `${shown.length} / ${data.features.length}`);
   if (data.features.length === 0) {
-    setText("stormStatus", `NO TRACKS WITHIN ${summary.buffer_nm || "—"} NM`);
+    setText("stormStatus", `No tracks within ${summary.buffer_nm || "—"} nm`);
     renderStormTable();
     return;
   }
@@ -604,10 +604,10 @@ function renderStorms() {
   state.stormGroups.get(state.selectedStorm)?.group.eachLayer((l) => l.bringToFront?.());
 
   const years = shown.map((f) => f.properties.year);
-  const span = years.length ? ` · ${Math.min(...years)}–${Math.max(...years)}` : "";
+  const span = years.length ? ` (${Math.min(...years)}–${Math.max(...years)})` : "";
   const majors = shown.filter((f) => (INTENSITY_RANK[f.properties.max_class_near_region] || 0) >= 5).length;
   const filtered = shown.length !== data.features.length ? ` OF ${data.features.length}` : "";
-  setText("stormStatus", `${shown.length}${filtered} TRACK${shown.length === 1 ? "" : "S"}${span} · ${majors} MAJOR`);
+  setText("stormStatus", `${shown.length}${filtered} track${shown.length === 1 ? "" : "s"}${span}, ${majors} major`);
   renderStormTable();
   renderLegend();
 }
@@ -844,7 +844,7 @@ function scenarioRows(data) {
   const range = Array.isArray(data.slr_likely_range_cm)
     ? ` (likely ${data.slr_likely_range_cm[0]}–${data.slr_likely_range_cm[1]})` : "";
   const rows = [
-    ["Surge (above MHHW)", `${fmtLen(data.surge_height_ft, 1)} · CAT ${data.category}`],
+    ["Surge (above MHHW)", `${fmtLen(data.surge_height_ft, 1)} · Cat ${data.category}`],
     ["Sea-level rise", `${fmt(data.slr_cm, 1)} cm${range} · ${data.slr_year}`],
   ];
   if (Number.isFinite(data.datum_offset_ft)) rows.push(["MHHW − MSL", fmtLen(data.datum_offset_ft, 2)]);
@@ -910,7 +910,7 @@ function renderScenarioControls() {
   });
   document.getElementById("slrSlider").value = String(state.slrYear);
   setText("slrYear", String(state.slrYear));
-  setText("srCat", `CAT ${state.category}`);
+  setText("srCat", `Cat ${state.category}`);
   setText("srSlr", `SLR ${state.slrYear}`);
   const i = SLR_YEARS.indexOf(state.slrYear);
   document.getElementById("yearPrev").disabled = i <= 0;
@@ -1011,7 +1011,7 @@ async function inspectAt(latlng) {
   const s = data.scenario;
   let headline = null;
   if (s?.available) {
-    rows.push(["Scenario water level", `${fmtLen(s.water_level_msl_ft, 2)} (CAT ${s.category}, ${s.slr_year})`]);
+    rows.push(["Scenario water level", `${fmtLen(s.water_level_msl_ft, 2)} (Cat ${s.category}, ${s.slr_year})`]);
     if (s.status === "flooded") {
       const spec = DEPTH_CLASSES.find((c) => c.id === s.depth_class.id);
       headline = el("div", { className: "inspect-status inspect-status--flooded" }, [
@@ -1033,7 +1033,7 @@ async function inspectAt(latlng) {
   }
   rows.push(["Lowest flooding level", data.lowest_flooding_level_ft == null
     ? "Not flooded in any modelled scenario" : `${fmtLen(data.lowest_flooding_level_ft, 2)} above MSL`]);
-  rows.push(...inspectCensusRows(data.census, `CAT ${state.category} ${state.slrYear}`));
+  rows.push(...inspectCensusRows(data.census, `Cat ${state.category} ${state.slrYear}`));
   rows.push(["Grid cell", `~${fmt(data.cell.resolution_m || 90)} m · centre ${data.cell.centre[0].toFixed(4)}, ${data.cell.centre[1].toFixed(4)}`]);
   const box = popupTable("Point inspect", where, rows);
   if (headline) box.insertBefore(headline, box.querySelector("table"));
@@ -1101,7 +1101,7 @@ function renderPeopleTab() {
     onTract: (t, row) => {
       if (state.tractMarker) map.removeLayer(state.tractMarker);
       state.tractMarker = L.circleMarker(t.centroid, {
-        radius: 9, color: "#54278f", weight: 3, fillColor: "#fff", fillOpacity: 0.6,
+        radius: 9, color: "#a99be0", weight: 3, fillColor: "#111a24", fillOpacity: 0.5,
       }).bindPopup(() => tractPopup(t, row)).addTo(map);
       map.flyTo(t.centroid, Math.max(map.getZoom(), 11), { duration: 0.6 });
       window.setTimeout(() => state.tractMarker?.openPopup(), 650);
@@ -1128,8 +1128,8 @@ function renderCompare() {
   const legendHost = document.getElementById("compareLegend");
   const people = state.measure === "people";
   setText("compareTitle", people
-    ? `RESIDENTS IN FLOODED AREAS BY CATEGORY · ${state.slrYear} · 2020 CENSUS`
-    : `INUNDATED AREA BY CATEGORY · ${state.slrYear} · ${units().area}`);
+    ? `Residents in flooded areas by category, ${state.slrYear} (2020 Census)`
+    : `Inundated area by category, ${state.slrYear} (${units().area})`);
   const data = state.compare?.data;
   if (!isAvailable(data) || !data.scenarios?.length) {
     chartHost.textContent = "Category comparison needs all five verified scenarios for this year.";
@@ -1174,7 +1174,7 @@ function renderCompare() {
         people ? "Residents" : "Total", people ? "Homes" : "% land"]
         .map((h) => el("th", { scope: "col" }, h)))),
       el("tbody", {}, columns.map((c) => el("tr", { className: c.category === state.category ? "is-selected" : "" }, [
-        el("td", {}, `CAT ${c.category}`),
+        el("td", {}, `Cat ${c.category}`),
         el("td", {}, fmtLen(c.raw.water_level_msl_ft, 1)),
         ...c.classes.map((k) => el("td", {}, people ? fmtPeople(k.value) : fmt(k.value))),
         el("td", {}, people ? fmtPeople(c.total) : fmt(c.total)),
@@ -1209,8 +1209,8 @@ function renderSeries() {
   const tableHost = document.getElementById("trendTable");
   const people = state.measure === "people";
   setText("trendTitle", people
-    ? `RESIDENTS IN FLOODED AREAS BY SEA-LEVEL-RISE YEAR · CAT ${state.category} · 2020 CENSUS`
-    : `INUNDATED AREA BY SEA-LEVEL-RISE YEAR · CAT ${state.category} · ${units().area}`);
+    ? `Residents in flooded areas by sea-level-rise year, Cat ${state.category} (2020 Census)`
+    : `Inundated area by sea-level-rise year, Cat ${state.category} (${units().area})`);
   const data = state.series?.data;
   if (!isAvailable(data) || !data.points?.length) {
     chartHost.textContent = "No verified scenarios for this category.";
@@ -1258,7 +1258,7 @@ function renderSeries() {
     return;
   }
   lineChart(chartHost, points, {
-    selected: state.slrYear, color: people ? "#54278f" : TRACK_COLOR, unitLabel: people ? "people" : units().area,
+    selected: state.slrYear, color: people ? "#a99be0" : TRACK_COLOR, unitLabel: people ? "people" : units().area,
     onSelect: (year) => setYear(year),
   });
 }
@@ -1762,7 +1762,7 @@ async function init() {
 
   const payload = await fetchRegions();
   if (payload.available === false || !payload.regions?.length) {
-    setText("datasetStatus", "REGION API UNAVAILABLE");
+    setText("datasetStatus", "Region API unavailable");
     document.getElementById("datasetStatus").classList.add("status-unavailable");
     setText("regionTitle", "Region data unavailable");
     setText("regionMeta", "The API could not be reached. Use Retry in Source status.");

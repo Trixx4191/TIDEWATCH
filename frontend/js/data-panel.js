@@ -262,10 +262,10 @@ function renderActions() {
   const advanced = el("details", { className: "data-advanced", open: (ui.advancedOpen || ui.arcsec !== 3 || subset) ? true : null,
     ontoggle: (e) => { ui.advancedOpen = e.target.open; } }, [
     el("summary", {}, "Advanced options"),
-    el("label", { className: "select-label", for: "dataArcsec" }, "MAP DETAIL (ELEVATION GRID)"),
+    el("label", { className: "select-label", for: "dataArcsec" }, "Map detail (elevation grid)"),
     detail,
     ui.action === "recompute" ? el("p", { className: "muted small" }, "Recompute keeps the existing grid detail.") : null,
-    el("div", { className: "select-label" }, "SEA-LEVEL YEARS TO BUILD"),
+    el("div", { className: "select-label" }, "Sea-level years to build"),
     years,
     subset ? el("p", { className: "data-warn small" }, `Only ${ui.years.size} of 8 years will exist for the selected regions; the others are removed so Inspect stays consistent.`) : null,
   ]);

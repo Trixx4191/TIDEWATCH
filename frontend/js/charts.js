@@ -13,7 +13,7 @@ import { el, svg, fmt } from "./util.js";
 const INK = "var(--text)";
 const INK_DIM = "var(--text-dim)";
 const MUTED = "var(--muted)";
-const GRID = "rgba(23, 39, 36, 0.12)";
+const GRID = "var(--chart-grid)";
 const SURFACE = "var(--deep)";
 
 // ── tooltip ────────────────────────────────────────────────────────────────
@@ -136,13 +136,13 @@ export function stackedColumns(container, columns, opts) {
       [document.createTextNode(compact(totals[i]))]));
     const selected = col.category === opts.selected;
     group.append(svg("text", { x: cx, y: height - 8, "text-anchor": "middle",
-      class: selected ? "tw-axis tw-axis--selected" : "tw-axis" }, [document.createTextNode(`CAT ${col.category}`)]));
+      class: selected ? "tw-axis tw-axis--selected" : "tw-axis" }, [document.createTextNode(`Cat ${col.category}`)]));
     if (selected) {
       group.append(svg("line", { x1: cx - 16, x2: cx + 16, y1: height - 3, y2: height - 3, stroke: INK, "stroke-width": 2 }));
     }
     // generous hit target
     group.append(svg("rect", { x: cx - band / 2, y: m.top, width: band, height: plotH + m.bottom, fill: "transparent" }));
-    const show = (event) => showTip(event, tipRows(`CAT ${col.category} · ${opts.valueFmt(totals[i])}`,
+    const show = (event) => showTip(event, tipRows(`Cat ${col.category}: ${opts.valueFmt(totals[i])}`,
       [...col.classes].reverse().map((k) => [k.color, k.label, opts.valueFmt(k.value)])));
     group.addEventListener("mousemove", show);
     group.addEventListener("mouseleave", hideTip);

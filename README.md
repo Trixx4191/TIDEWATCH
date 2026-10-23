@@ -66,13 +66,15 @@ for 10 minutes, and package downloads use 5-minute signed links.
 
 ```bash
 docker build -t tidewatch .
-docker run -p 3000:3000 -v tidewatch-data:/app/data \
+docker run -p 3000:3000 -v tidewatch-data:/app/state \
   -e TIDEWATCH_ADMIN_TOKEN='a-long-random-secret' -e CENSUS_API_KEY='…' tidewatch
 ```
 
 The image includes Python and the pipeline, so admins can build from the
-deployed site. The volume keeps data, the download cache and packages across
-restarts. Put it behind HTTPS so the token is never sent in clear text.
+deployed site. Persistent state lives at `/app/state`; do not mount over
+`/app/data`, which contains the pipeline scripts. Put it behind HTTPS so the
+token is never sent in clear text. A ready-to-use Compose setup is in
+[`compose.yaml`](compose.yaml).
 
 ---
 

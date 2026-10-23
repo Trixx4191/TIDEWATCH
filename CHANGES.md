@@ -1,3 +1,15 @@
+# TIDEWATCH v2.2.1 — interface theme
+
+- New look modelled on NASA's 2018-era Earth-science data portals: NASA-blue
+  header band, slate instrument panels, Source Sans 3 with tabular figures,
+  sentence-case labels, flat 2 px controls, dark map widgets and popups.
+  Lives in `frontend/css/theme.css` (loaded last); print stays white.
+- Copy: status, chart titles and labels in sentence case; "Cat 3" instead of "CAT 3".
+- Colours tuned for the dark ground: tide gauges `#1f8fd6`, People trend and
+  tract marker `#a99be0`, chart grid via `--chart-grid`.
+- Layout: taller bottom panel (236 px) so chart axes are never clipped;
+  Data-panel region table columns; mobile header no longer overflows.
+
 # TIDEWATCH v2.2.0 — data operations in the dashboard + population exposure
 
 **Upgrading:** open the Data panel and run **Refresh observations** on each

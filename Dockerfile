@@ -6,9 +6,9 @@ RUN apk add --no-cache python3 py3-numpy py3-scipy py3-requests py3-dotenv
 
 ENV NODE_ENV=production
 ENV PORT=3000
-ENV TIDEWATCH_DATA_DIR=/app/data/processed
-ENV TIDEWATCH_RAW_DIR=/app/data/raw
-ENV TIDEWATCH_PACKAGES_DIR=/app/data/packages
+ENV TIDEWATCH_DATA_DIR=/app/state/processed
+ENV TIDEWATCH_RAW_DIR=/app/state/raw
+ENV TIDEWATCH_PACKAGES_DIR=/app/state/packages
 ENV TIDEWATCH_PYTHON=python3
 # Set at run time to enable the Data panel for admins (≥ 16 characters):
 #   docker run -e TIDEWATCH_ADMIN_TOKEN=... -e CENSUS_API_KEY=...
@@ -25,10 +25,8 @@ COPY utils ./utils
 COPY config ./config
 COPY data/*.py ./data/
 
-# Writable data folders owned by the unprivileged user. Mount a volume on
-# /app/data to keep built data, the download cache and packages across
-# container restarts.
-RUN mkdir -p /app/data/processed /app/data/raw /app/data/packages && chown -R node:node /app/data
+# Keep persistent state separate from /app/data, which contains pipeline code.
+RUN mkdir -p /app/state/processed /app/state/raw /app/state/packages && chown -R node:node /app/state
 
 USER node
 

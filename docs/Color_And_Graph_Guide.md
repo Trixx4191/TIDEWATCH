@@ -1,5 +1,25 @@
 # TIDEWATCH Map Symbology Guide
 
+## Interface theme (`frontend/css/theme.css`)
+
+Modelled on NASA Earth-science data portals of around 2018 (Worldview,
+Earthdata): a solid NASA-blue band (`#0b3d91`) across the top, cool slate
+panels so the satellite basemap and the NHC flood colours stand out,
+Source Sans 3 with tabular figures, sentence-case labels, flat surfaces with
+2 px radii, and shadows only on floating map widgets.
+
+| Token | Hex | Use |
+|---|---|---|
+| `--nasa-blue` | `#0b3d91` | Header band, dialog top rule, measurement labels |
+| `--void` / `--deep` / `--panel` | `#0e151d` / `#151f2a` / `#1c2836` | Map background / panels / raised controls |
+| `--border` / `--border-bright` | `#283849` / `#3a4e65` | Rules / control outlines |
+| `--text` / `--text-dim` / `--muted` | `#e8eef5` / `#b3c2d2` / `#8598ad` | Ink levels (all ≥ 4.5:1 on `--deep`) |
+| `--action` | `#1f5fbf` | Primary buttons, selected category, pressed toggles |
+| `--safe` | `#4b9cf5` | Links, focus, selection outline (legacy token name) |
+| `--ok` / `--caution` / `--danger` | `#4cc28b` / `#e8a33d` / `#f0624a` | Status pills, checks, alerts |
+
+Print switches back to a white palette.
+
 Updated 2026-10-20 (v2.1). Colour values are mirrored in code; see the
 constants table in Development_Guide.md before changing any of them.
 
