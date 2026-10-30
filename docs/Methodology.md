@@ -14,9 +14,12 @@ the constants, and the function that implements it. If you change a formula,
 update this page and the test that pins it (listed in each section).
 
 > [!WARNING]
-> TIDEWATCH is a **screening** tool: a static, connected-bathtub estimate on a
-> ~90 m surface-elevation grid. It is not a hydrodynamic model and must not be
-> used for evacuation, insurance, or engineering decisions. See §15.
+> TIDEWATCH produces **scenario-based exposure estimates** using a static,
+> connected-bathtub model on a ~90 m surface-elevation grid. Tested affected-
+> population estimates can inform evacuation planning alongside local
+> information and official forecasts. This is not a hydrodynamic forecast
+> or a sole basis for evacuation orders, insurance or engineering decisions.
+> See §15.
 
 **Notation.** φ latitude, λ longitude (degrees unless stated, radians inside
 trig functions), z ground elevation, WL water level, R Earth radius.

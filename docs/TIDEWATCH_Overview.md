@@ -1,7 +1,7 @@
 ---
 tags: [tidewatch, overview, nasa, flood, coastal]
 created: 2026-01-01
-updated: 2026-10-20
+updated: 2026-10-30
 status: active
 related: ["[[Architecture]]", "[[Methodology]]", "[[Data_Formats]]", "[[API]]", "[[Frontend]]", "[[Pipeline_Operations]]", "[[Development_Guide]]"]
 ---
@@ -20,10 +20,19 @@ tide-gauge records that give the scenarios context. Data is built, refreshed,
 imported and exported from the dashboard itself (the Data panel), locally or
 by a signed-in admin on a deployment.
 
+## Delivered scope and planning use
+
+Flood exposure has been mapped across the six study regions. Tested
+estimates of affected coastal populations can inform evacuation planning,
+with scenario comparison and export available in the application. Population
+estimates apply where Census data is available; the Bay of Bengal currently
+has no population dataset and USVI coverage is partial.
+
 > [!NOTE]
-> Not an operational forecast. It doesn't replace NOAA SLOSH, NHC Potential
-> Storm Surge Flooding maps, or FEMA flood maps. See the limitations in
-> [[Methodology]] §15.
+> These are scenario-based planning estimates, not an operational forecast
+> or a sole basis for evacuation orders. They do not replace NOAA SLOSH,
+> NHC Potential Storm Surge Flooding maps, FEMA flood maps, or local emergency
+> guidance. Model assumptions and coverage limits remain in [[Methodology]] §15.
 
 ## What it computes
 
