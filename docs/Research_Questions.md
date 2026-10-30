@@ -1,6 +1,7 @@
 ---
 tags: [research, questions, future-work, nasa, noaa, publication]
 created: 2024-01-01
+updated: 2026-10-30
 status: proposal
 related: ["[[Methodology]]", "[[Equity_Analysis]]", "[[NASA_Grant_Summary]]"]
 ---
@@ -8,16 +9,18 @@ related: ["[[Methodology]]", "[[Equity_Analysis]]", "[[NASA_Grant_Summary]]"]
 # Research Questions
 
 > [!IMPORTANT]
-> **Planning document, not current functionality.** This page describes
-> proposed work. What TIDEWATCH actually computes today is specified in
-> [[Methodology]] and [[Architecture]]: SRTM ~90 m connected-bathtub flood
-> depth, NOAA tide gauges and datums, HURDAT2/IBTrACS tracks, and IPCC AR6
-> SSP2-4.5 SLR. No census, population, asset, MODIS SST or FEI analysis is
-> implemented. Any figures below are illustrative, not pipeline outputs.
+> **Further research for an implemented platform.** TIDEWATCH already
+> computes SRTM connected-bathtub flood depth, NOAA tide and storm context,
+> IPCC AR6 scenarios, and (since v2.2) 2020 Census population exposure, ACS
+> income, poverty and age profiles, and a population-based FEI where source
+> coverage is available. The proposed MODIS SST, asset and research analyses
+> below extend that platform. Figures in a proposal are not observed results;
+> current calculations and coverage are defined in [[Methodology]].
 
 
-Five open research questions surfaced by TIDEWATCH data.
-Each represents a fundable, publishable line of inquiry.
+Five proposed research directions build on TIDEWATCH’s implemented flood
+and population-exposure pipeline. These analyses are separate from the
+application’s delivered functionality.
 
 ---
 
@@ -28,9 +31,9 @@ disproportionately occur in storm tracks targeting high-FEI coastal regions —
 and if so, is this a product of geography, climate change, or both?
 
 **Why current data is insufficient:**
-TIDEWATCH displays SST anomaly as a static overlay. It does not correlate
-anomaly magnitude with track data at 6-hour resolution, nor does it link
-SST conditions to the socioeconomic profile of the landfall zone.
+TIDEWATCH does not currently ingest MODIS SST anomalies. The proposed
+research would join those data to historical storm tracks and the existing
+Census/ACS exposure profiles, then assess the relationship at landfall.
 
 **What is needed:**
 - HURDAT2 track data joined to MODIS SST at each 6-hour node position

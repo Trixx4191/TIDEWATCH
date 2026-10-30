@@ -1,115 +1,81 @@
 ---
 tags: [equity, justice, census, fei, flood, inequality]
 created: 2024-01-01
-status: proposal (FEI implemented in v2.2)
+updated: 2026-10-30
+status: active (population-based FEI implemented in v2.2)
 related: ["[[TIDEWATCH_Overview]]", "[[Methodology]]", "[[FEMA_Brief]]"]
 ---
 
 # Environmental Justice & Equity Analysis
 
-> [!IMPORTANT]
-> **Planning document, not current functionality.** This page describes
-> proposed work. What TIDEWATCH actually computes today is specified in
-> [[Methodology]] and [[Architecture]]: SRTM ~90 m connected-bathtub flood
-> depth, NOAA tide gauges and datums, HURDAT2/IBTrACS tracks, and IPCC AR6
-> SSP2-4.5 SLR, and (since v2.2) **2020 Census population exposure with ACS
-> income, poverty and age, and a Flood Equity Index** ([[Methodology]] §13).
-> The FEI here is defined at tract level against the region's low-income
-> threshold, which may differ from the formulations sketched below. Asset,
-> MODIS SST and the broader indices on this page are not implemented. Any
-> figures below are illustrative, not pipeline outputs.
-
+TIDEWATCH v2.2 implements Census population exposure, ACS income, poverty
+and age profiles, and a population-based Flood Equity Index (FEI). This
+page describes that delivered method and separates it from the policy
+questions below. Asset exposure, MODIS SST and broader social-vulnerability
+indices remain possible extensions.
 
 ## The Double Burden
 
-Communities that bear the greatest coastal flood risk are overwhelmingly
-the same communities with the fewest financial resources to prepare, absorb,
-and recover from flood events. This is not coincidental — it is a structural
-outcome of decades of discriminatory land use policy, redlining, and
-underinvestment in public infrastructure.
+Flood exposure can fall unevenly across communities with different resources
+to prepare and recover. The implemented FEI compares the share of exposed
+residents in low-income tracts with the share of all residents living in
+those tracts. It measures relative exposure, rather than recovery capacity,
+property damage or a complete social-vulnerability score.
 
-> [!WARNING]
-> TIDEWATCH does not currently ingest census data or compute FEI. The regional
-> values previously listed in this document were not produced by the pipeline
-> and must not be treated as findings.
+## Implemented Flood Equity Index
 
----
-
-## The Flood Equity Index (FEI)
-
-The **Flood Equity Index (FEI)** below is a proposed analysis method only. It
-is not implemented in the current application and has no validated regional
-results.
-
-### Formula
-
-```
-FEI = (% of inundated land area in low-income tracts)
-      ÷ (% of total regional land area in low-income tracts)
+```text
+FEI = (share of exposed residents in low-income tracts)
+      ÷ (share of regional residents in low-income tracts)
       × 100
 ```
 
-**Interpretation:**
-- FEI = 100 → proportionate exposure (flood risk mirrors income distribution)
-- FEI > 100 → disproportionate exposure (low-income areas bear excess risk)
-- FEI < 100 → inverse exposure (rare; occurs where wealthy areas occupy coast)
+Only tracts with known income classification enter the ratio. A tract is
+low-income when its median household income is below 80% of the region's
+population-weighted median of tract median incomes. The regional median is
+an approximation, used as a relative threshold within that region.
 
-**"Low-income tract"** is defined as census tracts where median household
-income (ACS Table B19013) falls below 80% of the regional median —
-consistent with HUD's definition for Community Development Block Grants.
+- 100 indicates proportional exposure.
+- The application labels values above 110 as over-representation and below
+  90 as under-representation; values between them are roughly proportional.
+- When fewer than 100 exposed residents have income data, or a required
+  denominator is unavailable, the index is not computed.
 
----
+This population-based method replaces the earlier proposal for an index
+based on inundated land area. Those two definitions are not interchangeable.
+The implementation is in `data/exposure.py:compute_exposure`; the formula,
+inputs and coverage rules are in [[Methodology]] §13.
 
-## Results Status
+## Data workflow
 
-No regional FEI results are available. Computing FEI requires georeferenced
-census income polygons, an inundation raster in a compatible projection, and
-area-weighted spatial joins. Those inputs and processing steps are not part of
-the current pipeline.
+1. Retrieve 2020 Census blocks and ACS 5-year tract estimates.
+2. Derive tract income, poverty, age and reliability fields, including
+   income margins of error.
+3. Place block residents and homes on the elevation grid; larger blocks
+   are distributed across nearby land cells as described in [[Methodology]].
+4. Sum residents and homes within the connected flooded cells for each
+   scenario, by tract and depth band.
+5. Apply tract ACS shares to exposed residents and compute the FEI where
+   income coverage and the minimum population threshold permit it.
 
----
+The application already displays these results in its People panel and
+exports. Figures vary by region, selected scenario and retrieved datasets;
+this document does not claim fixed regional FEI scores. The Bay of Bengal
+has no U.S. Census population coverage, and USVI Census/ACS coverage is
+partial. Source coverage, ACS sampling error, population placement and
+flood-model assumptions must accompany interpretation.
 
-## Data Methodology
-
-### Proposed Census Join Process (Not Implemented)
-
-1. Download ACS 5-Year Estimates Table B19013 (median household income)
-   by census tract from `api.census.gov` for all counties in region
-2. Compute regional median income across all tracts
-3. Flag tracts with median income < 80% of regional median as "low-income"
-4. Spatially join tract polygons with inundation mask for each scenario
-5. Compute: area of low-income tracts within inundation zone
-6. Compute: area of all tracts within inundation zone
-7. Apply FEI formula
-
-### Spatial Join Code Pattern
-
-```python
-import geopandas as gpd
-
-def compute_fei(inundation_gdf, census_gdf, region_median_income):
-    """Compute Flood Equity Index for a region + scenario."""
-    low_income = census_gdf[
-        census_gdf['median_income'] < 0.8 * region_median_income
-    ]
-    pct_region_low_income = (
-        low_income.geometry.area.sum() / census_gdf.geometry.area.sum()
-    )
-    inundated_low = gpd.overlay(inundation_gdf, low_income, how='intersection')
-    inundated_all = gpd.overlay(inundation_gdf, census_gdf, how='intersection')
-    pct_inundated_low_income = (
-        inundated_low.geometry.area.sum() / inundated_all.geometry.area.sum()
-    )
-    fei = (pct_inundated_low_income / pct_region_low_income) * 100
-    return round(fei, 1)
-```
+Earlier illustrative regional values were not produced by the pipeline and
+must not be treated as observed findings. Planned comparisons with external
+models and wider policy research remain separate from the implemented FEI.
 
 ---
 
 ## Policy Implications
 
 > [!TIP]
-> Any future FEI would require validation and review before policy or grant use.
+> The implemented FEI and any extensions require uncertainty assessment and
+> independent review before formal policy or grant use.
 
 The following are research questions, not recommendations derived from TIDEWATCH results:
 

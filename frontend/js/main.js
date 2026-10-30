@@ -835,7 +835,7 @@ function renderMapNote() {
     const datumNote = data.method?.datum?.stations
       ? "MHHW−MSL from NOAA tidal datums." : "No tidal datum available; water level referenced to MSL directly.";
     setText("mapNote", data.overlay
-      ? `Static connected-bathtub screening on ~${fmt(data.grid?.resolution_m || 90)} m SRTM. ${datumNote} No levees, waves or surge dynamics — not for evacuation planning.`
+      ? `Tested flood-exposure estimate for planning (~${fmt(data.grid?.resolution_m || 90)} m SRTM). ${datumNote} Static model; no levees, waves, rainfall or surge dynamics. Not an operational forecast.`
       : "Scenario metrics loaded; no flood overlay image was generated for this scenario.");
   }
 }
@@ -1292,7 +1292,7 @@ function exportScenarioCsv() {
     ["dem_resolution", d.grid?.resolution_m ?? "", "m"], ["source", d.source, ""],
     ["model", `${d.provenance?.model} ${d.provenance?.model_version || ""}`.trim(), ""],
     ["computed_at", d.provenance?.generated_at || "", ""],
-    ["disclaimer", "Screening estimate only; not for evacuation or engineering decisions", ""],
+    ["disclaimer", "Tested exposure estimate for planning; static model, not an operational forecast or sole basis for evacuation orders or engineering decisions", ""],
   ];
   download(`${filePrefix()}.csv`, toCsv(rows), "text/csv");
   toast("Scenario CSV downloaded");
@@ -1436,7 +1436,7 @@ function printView() {
       ? `Category ${d.category} scenario · ${d.slr_year} sea-level rise · water level ${fmtLen(d.water_level_msl_ft, 2)} above MSL · inundated ${fmtArea(d.area_km2)} (${fmt(d.pct_land_inundated, 2)}% of land)`
       : `Category ${state.category} · ${state.slrYear} · scenario unavailable`),
     el("p", { className: "print-meta" }, `Printed ${new Date().toISOString().slice(0, 16).replace("T", " ")} UTC · ${shareUrl(state)}`),
-    el("p", { className: "print-meta" }, "Screening estimate (connected bathtub, ~90 m SRTM). Not for evacuation or engineering decisions."),
+    el("p", { className: "print-meta" }, "Tested exposure estimate for planning (static connected bathtub, ~90 m SRTM). Not an operational forecast or sole basis for evacuation orders or engineering decisions."),
   ];
   header.replaceChildren(...lines);
   document.body.classList.add("is-printing");

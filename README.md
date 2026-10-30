@@ -19,9 +19,23 @@ and age profile of the affected tracts, historical tropical-cyclone tracks, and
 NOAA tide-gauge records. It covers six study regions: the Gulf Coast, NY/NJ,
 Florida, California, Puerto Rico/USVI and the Bay of Bengal.
 
-> **Screening tool, not a forecast.** A static, connected-bathtub model on a
-> ~90 m surface-elevation grid. It ignores levees, waves, rainfall and surge
-> dynamics. Do not use it for evacuation, insurance or engineering decisions.
+## Delivered scope and use
+
+- Mapped coastal flood exposure across **six study regions** using NASA SRTM,
+  NOAA tide records and hurricane tracks, with IPCC sea-level-rise scenarios.
+- **Tested affected-population estimates can inform evacuation planning**:
+  compare scenarios, inspect exposed residents and homes, and export the
+  estimates for further analysis. Population and income outputs require
+  Census/ACS coverage; the Bay of Bengal currently has no population dataset.
+- The browser application provides real-data pipelines, population exposure,
+  equity metrics, scenario comparisons and downloadable results.
+
+> **Scenario estimates, not an operational forecast.** The static,
+> connected-bathtub model uses a ~90 m surface-elevation grid and omits levees,
+> waves, rainfall and surge dynamics. Interpret planning estimates alongside
+> local information and official forecasts; they are not a sole basis for
+> evacuation orders, insurance or engineering decisions. See
+> [the methodology](docs/Methodology.md#15-limitations-read-before-interpreting-results).
 
 ---
 

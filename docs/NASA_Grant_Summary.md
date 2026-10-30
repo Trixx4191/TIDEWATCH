@@ -1,6 +1,7 @@
 ---
 tags: [nasa, grant, roses, abstract, funding]
 created: 2024-01-01
+updated: 2026-10-30
 status: proposal
 related: ["[[TIDEWATCH_Overview]]", "[[Methodology]]", "[[FEMA_Brief]]"]
 ---
@@ -8,12 +9,13 @@ related: ["[[TIDEWATCH_Overview]]", "[[Methodology]]", "[[FEMA_Brief]]"]
 # NASA Grant Summary — ROSES Format
 
 > [!IMPORTANT]
-> **Planning document, not current functionality.** This page describes
-> proposed work. What TIDEWATCH actually computes today is specified in
-> [[Methodology]] and [[Architecture]]: SRTM ~90 m connected-bathtub flood
-> depth, NOAA tide gauges and datums, HURDAT2/IBTrACS tracks, and IPCC AR6
-> SSP2-4.5 SLR. No census, population, asset, MODIS SST or FEI analysis is
-> implemented. Any figures below are illustrative, not pipeline outputs.
+> **Further research for an implemented platform.** TIDEWATCH already
+> computes SRTM connected-bathtub flood depth, NOAA tide and storm context,
+> IPCC AR6 scenarios, and (since v2.2) 2020 Census population exposure, ACS
+> income, poverty and age profiles, and a population-based FEI where source
+> coverage is available. The proposed MODIS SST, asset and research analyses
+> below extend that platform. Figures in a proposal are not observed results;
+> current calculations and coverage are defined in [[Methodology]].
 
 
 **Project Title:** TIDEWATCH: Open-Source Coastal Flood Vulnerability Atlas
@@ -32,44 +34,44 @@ Water Resources and Coastal Management Application Area
 
 NASA's 2022 Science Mission Directorate Strategic Plan identifies coastal
 hazard prediction as a priority application of Earth observation data.
-TIDEWATCH directly operationalizes NASA's SRTM and MODIS assets for
-actionable flood vulnerability assessment, fulfilling NASA's mandate to
-translate scientific data into societal benefit. The project supports
+TIDEWATCH already uses NASA SRTM for flood-exposure mapping across six
+study regions. This proposal would extend that implemented platform with
+MODIS SST analysis and further model validation. The project supports
 NASA's commitment to open science through fully public code, documented
 APIs, and reproducible data pipelines.
 
 ---
 
-## Technical Approach
+## Proposed next phase
 
-**Year 1, Months 1–3 (Data Infrastructure):** Establish automated pipelines
-for SRTM v3.0 DEM retrieval (currently from the AWS Open Data mirror; LP DAAC as an alternative), MODIS Level-3
-SST anomaly computation via OPeNDAP, and NOAA CO-OPS tidal gauge ingestion.
-Extend the existing 8-connected flood-fill inundation model with IPCC AR6 sea level rise
-offsets. Validate against NOAA SLOSH outputs for Katrina, Sandy, and Ian
-surge extents.
+The existing v2.2 baseline includes the SRTM/NOAA pipeline, connected flood
+model, Express API, Leaflet dashboard, six region definitions and
+Census/ACS exposure and FEI calculations where coverage is available.
+These are delivered capabilities, not outstanding Year 1 build tasks.
 
-**Year 1, Months 4–8 (Platform Development):** Build Express.js REST API
-serving processed geospatial data. Develop HTML5 Canvas dashboard with
-real-time hurricane track overlay from HURDAT2, storm scenario simulation
-(CAT1–5), and interactive SLR year projection slider (2024–2100). Integrate
-US Census ACS income data for Flood Equity Index computation across all
-six study regions.
+**Months 1–3 (Additional data and validation):** Add MODIS SST anomaly
+retrieval and independent comparisons against NOAA SLOSH outputs for
+historical storms. Document regional elevation and vertical-datum error.
 
-**Year 1, Months 9–12 (Validation and Dissemination):** Validate FEI
-methodology against peer-reviewed equity frameworks (Tessum et al. 2021).
-Submit methodology paper to Natural Hazards and Earth System Sciences
-(NHESS). Present findings to FEMA Region VI and IV leadership. Release
-v1.0 as fully open-source under MIT license with comprehensive documentation.
+**Months 4–8 (Extensions):** Extend the existing dashboard with validated
+SST analyses and explore infrastructure exposure and suitable population
+sources for regions outside U.S. Census coverage. The current Bay of Bengal
+configuration has no population dataset; existing Census/ACS outputs must
+not be presented as covering all six regions.
+
+**Months 9–12 (Review and dissemination):** Independently review exposure
+and FEI uncertainty, prepare a methodology paper, and seek stakeholder
+review. Publication, FEMA briefings and adoption in a formal grant process
+remain proposed outcomes, not completed approvals.
 
 ---
 
 ## Expected Outcomes
 
-- Operational flood vulnerability platform covering 6 coastal regions,
-  accessible via web browser without specialist GIS training
-- Flood Equity Index (FEI) methodology suitable for adoption in FEMA
-  Hazard Mitigation Grant Program benefit-cost analysis
+- Independently reviewed extensions to the existing six-region flood
+  exposure platform, accessible through its browser application
+- Evaluation of the implemented population-based FEI for possible policy
+  use, with documented uncertainty and external review
 - Peer-reviewed methodology paper submitted to NHESS
 - Open-source codebase reusable by NOAA, USACE, and international partners
 
@@ -86,18 +88,12 @@ institutional tools like HAZUS or SLOSH.
 
 ---
 
-## Gantt Chart
+## Proposed next-phase schedule
 
-```
-Task                        | M1 | M2 | M3 | M4 | M5 | M6 | M7 | M8 | M9 |M10 |M11 |M12
----------------------------|----|----|----|----|----|----|----|----|----|----|----|----|
-Data pipeline (SRTM/MODIS) | ██ | ██ | ██ |    |    |    |    |    |    |    |    |    |
-Surge model implementation |    | ██ | ██ | ██ |    |    |    |    |    |    |    |    |
-Model validation vs SLOSH  |    |    | ██ | ██ | ██ |    |    |    |    |    |    |    |
-Backend API development    |    |    |    | ██ | ██ | ██ |    |    |    |    |    |    |
-Frontend dashboard         |    |    |    |    | ██ | ██ | ██ | ██ |    |    |    |    |
-FEI equity analysis        |    |    |    |    |    | ██ | ██ | ██ |    |    |    |    |
-FEMA stakeholder briefings |    |    |    |    |    |    |    | ██ | ██ |    |    |    |
-Paper writing + submission |    |    |    |    |    |    |    |    | ██ | ██ | ██ |    |
-v1.0 public release        |    |    |    |    |    |    |    |    |    |    | ██ | ██ |
-```
+| Work | Months |
+|---|---|
+| MODIS data and regional error assessment | 1–3 |
+| Historical-storm comparison and uncertainty | 1–6 |
+| Dashboard and dataset extensions | 4–8 |
+| Independent methods review | 9–10 |
+| Paper preparation and stakeholder review | 9–12 |
