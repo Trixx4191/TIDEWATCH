@@ -1,7 +1,5 @@
 ---
 tags: [tidewatch, overview, nasa, flood, coastal]
-created: 2026-01-01
-updated: 2026-10-30
 status: active
 related: ["[[Architecture]]", "[[Methodology]]", "[[Data_Formats]]", "[[API]]", "[[Frontend]]", "[[Pipeline_Operations]]", "[[Development_Guide]]"]
 ---
@@ -51,8 +49,8 @@ has no population dataset and USVI coverage is partial.
 ## What it doesn't compute (yet)
 
 Critical facilities, roads or property values; daytime or projected
-population; the social-vulnerability indices proposed in [[Equity_Analysis]]
-beyond the FEI; SST, levees and drainage, waves, rainfall, local subsidence,
+population; social-vulnerability indices beyond the FEI; SST, levees and
+drainage, waves, rainfall, local subsidence,
 or live advisories. See [[Development_Guide]] → "Known gaps &
 next steps".
 
@@ -96,7 +94,6 @@ Details: [[Architecture]].
 | [[Development_Guide]] | make changes safely, test, plan next work |
 | [[Color_And_Graph_Guide]] | map symbology and chart encoding |
 | [[Storm_Scenarios]] | surge-height rationale and historical context |
-| [[Equity_Analysis]], [[FEMA_Brief]], [[NASA_Grant_Summary]], [[Research_Questions]] | proposals and future research (planning documents; the FEI part of Equity_Analysis is implemented in v2.2) |
 
 ## History
 

@@ -226,7 +226,6 @@ A file-by-file map is in [docs/Architecture.md](docs/Architecture.md).
 | [Development guide](docs/Development_Guide.md) | Mirrored constants checklist, change checklists, conventions, tests, release checklist, ranked roadmap |
 | [Map symbology](docs/Color_And_Graph_Guide.md) | Basemaps, overlay, track and density colours, chart encoding |
 | [Storm scenarios](docs/Storm_Scenarios.md) | Surge-height rationale and historical storms |
-| [Equity](docs/Equity_Analysis.md) · [FEMA brief](docs/FEMA_Brief.md) · [Grant summary](docs/NASA_Grant_Summary.md) · [Research questions](docs/Research_Questions.md) | Planning documents |
 | [CHANGES.md](CHANGES.md) | Release notes |
 
 ## Configuration

@@ -27,7 +27,7 @@ data/processed/*.part*
 # Keep pipeline manifest for reproducibility
 !data/processed/pipeline_manifest.json
 
-# Docs: all of docs/ is tracked (scratch notes can go in docs/_scratch/)
+# Documentation scratch files
 /docs/_scratch/
 
 # OS
@@ -46,3 +46,17 @@ data/processed/*.i16
 data/processed/.jobs/
 data/processed/.staging_*/
 data/packages/
+
+# Personal drafts and local workspace files
+/docs/Equity_Analysis.md
+/docs/FEMA_Brief.md
+/docs/NASA_Grant_Summary.md
+/docs/Research_Questions.md
+/private/
+/personal/
+/review/
+/notes/private/
+/.agents/
+/.codex/
+/.claude/
+/.aws/

@@ -1,6 +1,5 @@
 ---
 tags: [pipeline, operations, deployment]
-updated: 2026-10-20
 status: active
 related: ["[[Architecture]]", "[[Data_Formats]]", "[[Methodology]]", "[[API]]"]
 ---

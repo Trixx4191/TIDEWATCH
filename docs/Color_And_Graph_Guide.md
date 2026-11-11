@@ -20,7 +20,7 @@ Source Sans 3 with tabular figures, sentence-case labels, flat surfaces with
 
 Print switches back to a white palette.
 
-Updated 2026-10-20 (v2.1). Colour values are mirrored in code; see the
+Colour values are mirrored in code; see the
 constants table in Development_Guide.md before changing any of them.
 
 Tags: #TIDEWATCH #Flood-Risk #Obsidian

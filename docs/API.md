@@ -1,6 +1,5 @@
 ---
 tags: [api, backend, express]
-updated: 2026-10-20
 status: active
 related: ["[[Architecture]]", "[[Data_Formats]]"]
 ---

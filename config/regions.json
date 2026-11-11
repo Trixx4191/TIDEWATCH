@@ -1,5 +1,5 @@
 {
-  "_comment": "Single source of truth for study regions. Read by the Python pipeline (data/common.py) and the Express API (backend/routes/regions.js). bbox = [min_lon, min_lat, max_lon, max_lat] in WGS84 degrees. Station IDs verified against the NOAA CO-OPS metadata API (mdapi) on 2026-10-20. census.provider: us_census (2020 blocks via TIGERweb + ACS 5-year tracts) or none.",
+  "_comment": "Single source of truth for study regions. Read by the Python pipeline (data/common.py) and the Express API (backend/routes/regions.js). bbox = [min_lon, min_lat, max_lon, max_lat] in WGS84 degrees. Station IDs verified against the NOAA CO-OPS metadata API (mdapi). census.provider: us_census (2020 blocks via TIGERweb + ACS 5-year tracts) or none.",
   "regions": {
     "gulf_coast": {
       "name": "Gulf Coast (Louisiana / Mississippi)",

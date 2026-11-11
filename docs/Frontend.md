@@ -1,6 +1,5 @@
 ---
 tags: [frontend, leaflet, ui]
-updated: 2026-10-20
 status: active
 related: ["[[Architecture]]", "[[API]]", "[[Color_And_Graph_Guide]]", "[[Development_Guide]]"]
 ---

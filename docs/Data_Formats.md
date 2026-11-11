@@ -1,6 +1,5 @@
 ---
 tags: [data, schema, formats]
-updated: 2026-10-20
 status: active
 related: ["[[Architecture]]", "[[Methodology]]", "[[API]]"]
 ---

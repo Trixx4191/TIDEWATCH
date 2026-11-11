@@ -1,7 +1,5 @@
 ---
 tags: [methodology, srtm, noaa, inundation, maths]
-created: 2026-01-01
-updated: 2026-10-20
 status: active
 model_version: 2.2.0
 related: ["[[Architecture]]", "[[Data_Formats]]", "[[Storm_Scenarios]]", "[[Color_And_Graph_Guide]]"]

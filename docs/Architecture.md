@@ -1,6 +1,5 @@
 ---
 tags: [architecture, overview]
-updated: 2026-10-20
 status: active
 related: ["[[Methodology]]", "[[Data_Formats]]", "[[API]]", "[[Frontend]]", "[[Pipeline_Operations]]", "[[Development_Guide]]"]
 ---

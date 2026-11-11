@@ -1,6 +1,5 @@
 ---
 tags: [development, testing, contributing]
-updated: 2026-10-20
 status: active
 related: ["[[Architecture]]", "[[Methodology]]", "[[Frontend]]", "[[API]]", "[[Pipeline_Operations]]"]
 ---
